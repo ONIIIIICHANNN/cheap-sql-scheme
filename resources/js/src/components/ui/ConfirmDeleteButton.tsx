@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState, type MouseEvent, type ReactNode } from 'react'
 import { cn } from '../../lib/cn'
+import { t } from '../../lib/i18n'
 
 interface ConfirmDeleteButtonProps {
   onConfirm: () => void
@@ -20,9 +21,9 @@ const ARMED_MS = 4000
  */
 export function ConfirmDeleteButton({
   onConfirm,
-  children = 'Удалить',
-  confirmLabel = 'Точно удалить?',
-  title = 'Удалить',
+  children = t('delete'),
+  confirmLabel = t('confirmDelete'),
+  title = t('delete'),
   className,
   armedClassName = 'text-warm',
 }: ConfirmDeleteButtonProps) {
@@ -58,7 +59,7 @@ export function ConfirmDeleteButton({
     <button
       type="button"
       onClick={handleClick}
-      title={armed ? 'Нажмите ещё раз, чтобы удалить' : title}
+      title={armed ? t('clickAgainToDelete') : title}
       aria-label={armed ? confirmLabel : title}
       className={cn(className, armed && armedClassName)}
     >

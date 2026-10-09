@@ -2,6 +2,7 @@
 
 namespace CheapSqlScheme\Http\Controllers;
 
+use CheapSqlScheme\Http\Middleware\SetLocale;
 use Illuminate\Http\Request;
 use Illuminate\Routing\Controller;
 use Symfony\Component\HttpFoundation\BinaryFileResponse;
@@ -20,20 +21,17 @@ class UiController extends Controller
     public function app(Request $request)
     {
         $path = trim((string) config('cheap-sql-scheme.path'), '/');
-        $user = $request->user();
 
         return view('cheap-sql-scheme::app', [
-            'version' => self::version(),
+            'locale' => SetLocale::locale(),
             'assetUrl' => fn (string $file) => url($path.'/assets/'.$file).'?v='.self::version(),
             'config' => [
                 'apiBase' => '/'.$path.'/api',
                 'basePath' => '/'.$path,
                 'csrfToken' => csrf_token(),
                 'backUrl' => config('cheap-sql-scheme.back_url'),
-                'user' => $user ? [
-                    'id' => $user->getAuthIdentifier(),
-                    'name' => $user->name ?? $user->email ?? 'Вы',
-                ] : null,
+                'locale' => SetLocale::locale(),
+                'canSaveMigrations' => SqlSchemaController::canSaveMigrations(),
             ],
         ]);
     }

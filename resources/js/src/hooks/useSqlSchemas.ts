@@ -2,6 +2,7 @@ import { useCallback, useEffect, useState } from 'react'
 import { ApiError } from '../api/client'
 import { sqlApi, type SqlSchemaInput } from '../api/sql'
 import type { SqlSchema } from '../api/types'
+import { t } from '../lib/i18n'
 
 interface UseSqlSchemas {
   schemas: SqlSchema[]
@@ -24,7 +25,7 @@ export function useSqlSchemas(): UseSqlSchemas {
     try {
       setSchemas(await sqlApi.list())
     } catch (err) {
-      setError(err instanceof ApiError ? err.message : 'Не удалось загрузить схемы')
+      setError(err instanceof ApiError ? err.message : t('loadSchemasFailed'))
     } finally {
       setLoading(false)
     }

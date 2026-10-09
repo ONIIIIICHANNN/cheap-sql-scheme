@@ -1,5 +1,13 @@
 import { ApiError, api, apiUrl, authHeaders } from './client'
-import type { SqlDialect, SqlRelationType, SqlReferentialAction, SqlSchema } from './types'
+import type {
+  SchemaChanges,
+  SchemaDrift,
+  SqlDialect,
+  SqlRelationType,
+  SqlReferentialAction,
+  SqlSchema,
+} from './types'
+import { t } from '../lib/i18n'
 
 export interface SqlSchemaInput {
   name: string
@@ -89,12 +97,36 @@ export const sqlApi = {
       credentials: 'same-origin',
       headers: { Accept: 'application/zip', ...authHeaders() },
     })
-    if (!res.ok) throw new ApiError('Не удалось собрать архив', res.status)
+    if (!res.ok) throw new ApiError(t('buildZipFailed'), res.status)
     return res.blob()
   },
 
   import: (input: { name: string; content: string }) =>
     api.post<SqlSchema>('/schemas/import', input),
+
+  /**
+   * Записать миграции по таблицам прямо в database/migrations приложения.
+   * Если у таблиц уже есть миграции — 409, список в errors.conflicts;
+   * overwrite перезаписывает их файлы.
+   */
+  saveMigrations: (id: number, overwrite = false) =>
+    api.post<{ path: string; files: string[] }>(`/schemas/${id}/save-migrations`, { overwrite }),
+
+  /** Что изменилось с последнего коммита, и миграция с этими изменениями. */
+  changes: (id: number) => api.get<SchemaChanges>(`/schemas/${id}/changes`),
+
+  /** Зафиксировать изменения; write — записать миграцию в проект. */
+  commit: (id: number, input: { name: string; write: boolean }) =>
+    api.post<{ filename: string; content: string; written: boolean; path: string | null }>(
+      `/schemas/${id}/commit`,
+      input,
+    ),
+
+  /** Изменилась ли база проекта вне редактора. */
+  drift: (id: number) => api.get<SchemaDrift>(`/schemas/${id}/drift`),
+
+  /** Подтянуть структуру из базы проекта. */
+  sync: (id: number) => api.post<SqlSchema>(`/schemas/${id}/sync`),
 
   remove: (id: number) => api.delete<null>(`/schemas/${id}`),
 }

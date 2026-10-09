@@ -1,13 +1,21 @@
 import {
+  ArrowsClockwise,
   BoundingBox,
   FlowArrow,
+  GitCommit,
   LineSegments,
   Plus,
   Selection,
   SidebarSimple,
   Trash,
 } from '@phosphor-icons/react'
-import { useState } from 'react'
+import { useCallback, useEffect, useMemo, useState } from 'react'
+import type { SchemaDrift } from '../api/types'
+import { DriftBanner } from '../components/sql/DriftBanner'
+import { sqlApi } from '../api/sql'
+import { CommitModal } from '../components/sql/CommitModal'
+import { useToast } from '../components/ui/Toast'
+import { changeMarks } from '../lib/changes'
 import { Link, useParams } from 'react-router-dom'
 import { EditorAction, EditorHeader, EditorIcon } from '../components/layout/EditorHeader'
 import { ExportModal } from '../components/sql/ExportModal'
@@ -21,7 +29,7 @@ import { ZoneCard } from '../components/sql/ZoneCard'
 import { defaultTableName } from '../lib/sqlDiagram'
 import { cn } from '../lib/cn'
 import { useSqlSchema } from '../hooks/useSqlSchema'
-import { pl } from '../lib/ax'
+import { t, tablesCount } from '../lib/i18n'
 
 export function SqlSchemaPage() {
   const { id } = useParams()
@@ -48,7 +56,56 @@ export function SqlSchemaPage() {
     updateZone,
     removeZone,
     updateSettings,
+    saveNow,
+    reload,
   } = useSqlSchema(schemaId)
+  const { notify } = useToast()
+
+  // Что изменилось с последнего коммита: счётчик в шапке и пометки на холсте.
+  const marks = useMemo(
+    () => (diagram ? changeMarks(diagram, schema?.baseline) : null),
+    [diagram, schema?.baseline],
+  )
+  const [commitOpen, setCommitOpen] = useState(false)
+  const [pulling, setPulling] = useState(false)
+  const [drift, setDrift] = useState<SchemaDrift | null>(null)
+
+  // Схема проекта: не изменилась ли база в обход редактора. Проверяем при
+  // открытии и при возврате во вкладку — например, после migrate в терминале.
+  const isProject = schema?.source === 'database'
+  const checkDrift = useCallback(() => {
+    if (!isProject) return
+    sqlApi
+      .drift(schemaId)
+      .then(setDrift)
+      .catch(() => setDrift(null))
+  }, [isProject, schemaId])
+  useEffect(() => {
+    checkDrift()
+    const onFocus = () => document.visibilityState === 'visible' && checkDrift()
+    window.addEventListener('focus', onFocus)
+    document.addEventListener('visibilitychange', onFocus)
+    return () => {
+      window.removeEventListener('focus', onFocus)
+      document.removeEventListener('visibilitychange', onFocus)
+    }
+  }, [checkDrift])
+
+  async function pullFromDatabase() {
+    if (marks && marks.count > 0 && !window.confirm(t('pullConfirm'))) return
+    setPulling(true)
+    try {
+      await saveNow()
+      await sqlApi.sync(schemaId)
+      await reload()
+      setDrift(null)
+      checkDrift()
+    } catch {
+      notify(t('pullFailed'))
+    } finally {
+      setPulling(false)
+    }
+  }
 
   const [selectedTable, setSelectedTable] = useState<string | null>(null)
   const [selectedRelation, setSelectedRelation] = useState<string | null>(null)
@@ -115,15 +172,15 @@ export function SqlSchemaPage() {
 
   if (loading) {
     return (
-      <div className="grid h-full place-items-center text-[13px] text-neutral-500">Загрузка…</div>
+      <div className="grid h-full place-items-center text-[13px] text-neutral-500">{t('loading')}</div>
     )
   }
   if (error || !diagram || !schema) {
     return (
       <div className="grid h-full place-items-center gap-3 text-center">
-        <p className="text-[13px] text-danger">{error ?? 'Схема не найдена'}</p>
+        <p className="text-[13px] text-danger">{error ?? t('schemaNotFound')}</p>
         <Link to="/" className="text-[13px] text-accent hover:underline">
-          ← К списку схем
+          {t('backToSchemas')}
         </Link>
       </div>
     )
@@ -133,20 +190,37 @@ export function SqlSchemaPage() {
     <div className="flex h-full flex-col overflow-hidden">
       <EditorHeader
         backTo="/"
-        backLabel="SQL-схемы"
+        backLabel={t('schemasTitle')}
         title={schema.name}
-        meta={`${pl(diagram.tables.length, 'таблица', 'таблицы', 'таблиц')}`}
+        meta={
+          schema.source === 'database'
+            ? `${tablesCount(diagram.tables.length)} · ${t('projectBadge')}`
+            : tablesCount(diagram.tables.length)
+        }
         save={saveState}
         compact
       >
+        {schema.source === 'database' && (
+          <EditorAction
+            icon={<ArrowsClockwise size={18} className={pulling ? 'animate-spin' : undefined} />}
+            label={t('pullFromDb')}
+            onClick={() => void pullFromDatabase()}
+          />
+        )}
+        <EditorAction
+          icon={<GitCommit size={18} />}
+          label={marks?.count ? `${t('changesAction')} · ${marks.count}` : t('changesAction')}
+          pressed={Boolean(marks?.count && schema.baseline)}
+          onClick={() => setCommitOpen(true)}
+        />
         <EditorAction
           icon={EditorIcon.export}
-          label="Экспорт"
+          label={t('exportAction')}
           onClick={() => setExportOpen(true)}
         />
         <EditorAction
           icon={EditorIcon.gear}
-          label="Настройки"
+          label={t('settingsAction')}
           onClick={() => setSettingsOpen(true)}
         />
       </EditorHeader>
@@ -209,14 +283,15 @@ export function SqlSchemaPage() {
             selectedZone={zoneMode ? selectedZone : null}
             onSelectZone={setSelectedZone}
             onZoneDrawn={() => setZoneDrawArmed(false)}
+            changeMarks={marks?.tables}
           />
 
           {/* Панель инструментов холста: режим линий и режим зон. */}
           <div className="absolute top-3 left-3 flex items-center gap-2">
             <button
               onClick={toggleSidebar}
-              title={sidebarHidden ? 'Показать панель таблиц' : 'Спрятать панель таблиц'}
-              aria-label={sidebarHidden ? 'Показать панель таблиц' : 'Спрятать панель таблиц'}
+              title={sidebarHidden ? t('showSidebar') : t('hideSidebar')}
+              aria-label={sidebarHidden ? t('showSidebar') : t('hideSidebar')}
               aria-pressed={!sidebarHidden}
               className="grid size-[34px] place-items-center rounded-lg bg-surface text-neutral-300 shadow-[var(--shadow-sm)] transition-colors hover:text-accent"
             >
@@ -227,23 +302,23 @@ export function SqlSchemaPage() {
                 className="seg-opt"
                 aria-selected={diagram.lineMode === 'smooth'}
                 onClick={() => setLineMode('smooth')}
-                title="Мягкие кривые"
+                title={t('smoothTitle')}
               >
-                <FlowArrow size={14} /> Мягкие
+                <FlowArrow size={14} /> {t('smooth')}
               </button>
               <button
                 className="seg-opt"
                 aria-selected={diagram.lineMode === 'straight'}
                 onClick={() => setLineMode('straight')}
-                title="Строгие прямые"
+                title={t('straightTitle')}
               >
-                <LineSegments size={14} /> Прямые
+                <LineSegments size={14} /> {t('straight')}
               </button>
             </div>
 
             <button
               onClick={toggleSelectMode}
-              title="Выделение — рамкой выберите несколько таблиц и двигайте их вместе"
+              title={t('selectTitle')}
               className={cn(
                 'flex items-center gap-1.5 rounded-lg px-3 py-2 text-[12px] shadow-[var(--shadow-sm)] transition-colors',
                 selectMode
@@ -251,12 +326,12 @@ export function SqlSchemaPage() {
                   : 'bg-surface text-neutral-300 hover:text-accent',
               )}
             >
-              <BoundingBox size={14} /> Выделение
+              <BoundingBox size={14} /> {t('select')}
             </button>
 
             <button
               onClick={toggleZoneMode}
-              title={zoneMode ? 'Выйти из режима зон' : 'Режим зон'}
+              title={zoneMode ? t('zonesExit') : t('zonesEnter')}
               className={cn(
                 'flex items-center gap-1.5 rounded-lg px-3 py-2 text-[12px] shadow-[var(--shadow-sm)] transition-colors',
                 zoneMode
@@ -264,13 +339,13 @@ export function SqlSchemaPage() {
                   : 'bg-surface text-neutral-300 hover:text-accent',
               )}
             >
-              <Selection size={14} /> Зоны
+              <Selection size={14} /> {t('zones')}
             </button>
 
             {zoneMode && (
               <button
                 onClick={() => setZoneDrawArmed(true)}
-                title="Начертите зону по холсту"
+                title={t('drawZoneTitle')}
                 className={cn(
                   'flex items-center gap-1.5 rounded-lg px-3 py-2 text-[12px] shadow-[var(--shadow-sm)] transition-colors',
                   zoneDrawArmed
@@ -278,7 +353,7 @@ export function SqlSchemaPage() {
                     : 'bg-surface text-accent hover:bg-accent/10',
                 )}
               >
-                <Plus size={14} /> Создать зону
+                <Plus size={14} /> {t('createZone')}
               </button>
             )}
           </div>
@@ -297,13 +372,21 @@ export function SqlSchemaPage() {
 
           {zoneMode && zoneDrawArmed && (
             <div className="pointer-events-none absolute top-3 left-1/2 -translate-x-1/2 rounded-full bg-surface px-3 py-1.5 text-[11.5px] text-neutral-400 shadow-[var(--shadow-sm)]">
-              Начертите зону мышью по холсту
+              {t('drawZoneHint')}
             </div>
+          )}
+
+          {drift?.changed && (
+            <DriftBanner
+              drift={drift}
+              refreshing={pulling}
+              onRefresh={() => void pullFromDatabase()}
+            />
           )}
 
           {selectMode && (
             <div className="pointer-events-none absolute top-3 left-1/2 -translate-x-1/2 rounded-full bg-surface px-3 py-1.5 text-[11.5px] text-neutral-400 shadow-[var(--shadow-sm)]">
-              Обведите таблицы рамкой, затем тяните любую из выделенных
+              {t('selectHint')}
             </div>
           )}
 
@@ -315,15 +398,14 @@ export function SqlSchemaPage() {
               }}
               className="absolute bottom-3 left-1/2 flex -translate-x-1/2 items-center gap-1.5 rounded-full bg-surface px-3 py-1.5 text-[12px] text-danger shadow-[var(--shadow-md)] transition-colors hover:bg-danger/10"
             >
-              <Trash size={13} /> Удалить связь
+              <Trash size={13} /> {t('deleteRelation')}
             </button>
           )}
 
           {diagram.tables.length === 0 && (
             <div className="pointer-events-none absolute inset-0 grid place-items-center">
               <p className="max-w-[300px] text-center text-[13px] leading-[1.6] text-neutral-500">
-                Пустой холст. Нажмите «Добавить таблицу» в панели слева, затем тяните связь от
-                колонки к колонке.
+                {t('emptyCanvas')}
               </p>
             </div>
           )}
@@ -331,6 +413,17 @@ export function SqlSchemaPage() {
       </div>
 
       <ExportModal open={exportOpen} schemaId={schemaId} onClose={() => setExportOpen(false)} />
+
+      <CommitModal
+        open={commitOpen}
+        schemaId={schemaId}
+        beforeLoad={saveNow}
+        onClose={() => setCommitOpen(false)}
+        onCommitted={() => {
+          void reload()
+          checkDrift()
+        }}
+      />
 
       <SchemaSettingsModal
         open={settingsOpen}

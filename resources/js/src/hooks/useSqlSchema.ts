@@ -14,6 +14,7 @@ import {
   uniqueTableName,
 } from '../lib/sqlDiagram'
 import { useFlushOnLeave } from './useFlushOnLeave'
+import { t } from '../lib/i18n'
 
 /** Новая колонка встаёт перед created_at / updated_at, если они в конце таблицы. */
 function withNewColumn(columns: SqlColumn[]): SqlColumn[] {
@@ -49,6 +50,10 @@ interface UseSqlSchema {
   updateZone: (uid: string, patch: Partial<SqlZone>) => void
   removeZone: (uid: string) => void
   updateSettings: (input: { name?: string }) => Promise<void>
+  /** Сохранить несохранённые правки прямо сейчас (перед коммитом). */
+  saveNow: () => Promise<void>
+  /** Перечитать схему с сервера (после коммита или синхронизации); камера остаётся. */
+  reload: () => Promise<void>
 }
 
 export function useSqlSchema(id: number): UseSqlSchema {
@@ -89,7 +94,7 @@ export function useSqlSchema(id: number): UseSqlSchema {
       })
       .catch((err) => {
         if (!active) return
-        setError(err instanceof ApiError ? err.message : 'Не удалось загрузить схему')
+        setError(err instanceof ApiError ? err.message : t('loadSchemaFailed'))
       })
       .finally(() => active && setLoading(false))
 
@@ -432,13 +437,39 @@ export function useSqlSchema(id: number): UseSqlSchema {
         const updated = await sqlApi.update(id, { name })
         setSchema((prev) => (prev ? { ...prev, ...updated } : updated))
       } catch (err) {
-        throw err instanceof ApiError ? err : new Error('Не удалось сохранить настройки')
+        throw err instanceof ApiError ? err : new Error(t('saveSettingsFailed'))
       }
     },
     [id],
   )
 
+  const saveNow = useCallback(async () => {
+    const current = diagramRef.current
+    if (!current || !structureDirtyRef.current) return
+    if (structureTimerRef.current) clearTimeout(structureTimerRef.current)
+    setSaveState('saving')
+    try {
+      await sqlApi.saveDiagram(id, diagramToPayload(current))
+      structureDirtyRef.current = false
+      setSaveState('saved')
+    } catch (err) {
+      setSaveState('error')
+      throw err
+    }
+  }, [id])
+
+  const reload = useCallback(async () => {
+    const data = await sqlApi.get(id)
+    setSchema(data)
+    setDiagram((prev) => {
+      const fresh = schemaToDiagram(data)
+      return prev ? { ...fresh, canvas: prev.canvas } : fresh
+    })
+  }, [id])
+
   return {
+    saveNow,
+    reload,
     schema,
     diagram,
     loading,

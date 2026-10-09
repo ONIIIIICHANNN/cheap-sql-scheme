@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import { Button } from '../ui/Button'
 import { Input } from '../ui/Input'
 import { Modal } from '../ui/Modal'
+import { t } from '../../lib/i18n'
 
 interface NewTableModalProps {
   open: boolean
@@ -29,25 +30,25 @@ export function NewTableModal({ open, defaultName, onClose, onCreate }: NewTable
   return (
     <Modal
       open={open}
-      title="Новая таблица"
+      title={t('newTableTitle')}
       onClose={onClose}
       footer={
         <>
           <Button variant="secondary" onClick={onClose}>
-            Отмена
+            {t('cancel')}
           </Button>
-          <Button onClick={submit}>Создать</Button>
+          <Button onClick={submit}>{t('create')}</Button>
         </>
       }
     >
       <Input
-        label="Имя таблицы"
+        label={t('tableName')}
         value={name}
         onChange={(e) => setName(e.target.value)}
         onKeyDown={(e) => {
           if (e.key === 'Enter') submit()
         }}
-        placeholder="Например, users"
+        placeholder={t('tableNamePlaceholder')}
         autoFocus
       />
     </Modal>

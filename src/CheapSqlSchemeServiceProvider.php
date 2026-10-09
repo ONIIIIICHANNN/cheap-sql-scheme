@@ -13,6 +13,7 @@ class CheapSqlSchemeServiceProvider extends ServiceProvider
 
     public function boot(): void
     {
+        $this->loadTranslationsFrom(__DIR__.'/../lang', 'cheap-sql-scheme');
         $this->loadViewsFrom(__DIR__.'/../resources/views', 'cheap-sql-scheme');
         $this->loadMigrationsFrom(__DIR__.'/../database/migrations');
         $this->loadRoutesFrom(__DIR__.'/../routes/web.php');

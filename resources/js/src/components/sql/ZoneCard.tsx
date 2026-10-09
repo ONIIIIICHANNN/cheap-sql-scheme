@@ -3,6 +3,7 @@ import type { SqlZone } from '../../api/types'
 import { cn } from '../../lib/cn'
 import { ZONE_COLORS } from '../../lib/sqlDiagram'
 import { ConfirmDeleteButton } from '../ui/ConfirmDeleteButton'
+import { t } from '../../lib/i18n'
 
 /**
  * Карточка выбранной зоны поверх холста: имя, цвет и удаление. Появляется
@@ -26,11 +27,11 @@ export function ZoneCard({
     >
       <div className="flex items-center gap-2">
         <span className="size-3 shrink-0 rounded-full" style={{ background: zone.color }} />
-        <p className="m-0 flex-1 text-[14px] font-semibold">Зона</p>
+        <p className="m-0 flex-1 text-[14px] font-semibold">{t('zone')}</p>
         <button
           onClick={onClose}
-          title="Закрыть"
-          aria-label="Закрыть"
+          title={t('close')}
+          aria-label={t('close')}
           className="grid size-8 place-items-center rounded-[8px] text-muted hover:bg-tint hover:text-fg"
         >
           <X size={15} />
@@ -38,7 +39,7 @@ export function ZoneCard({
       </div>
 
       <label className="flex flex-col gap-1.5 text-[13px] text-muted">
-        Название
+        {t('nameLabel')}
         <input
           // Ключ по зоне: при выборе другой зоны поле получает фокус заново.
           key={zone.uid}
@@ -46,14 +47,14 @@ export function ZoneCard({
           value={zone.label ?? ''}
           onChange={(e) => onUpdate({ label: e.target.value })}
           onKeyDown={(e) => (e.key === 'Enter' || e.key === 'Escape') && onClose()}
-          placeholder="Например, Платежи"
+          placeholder={t('zoneNamePlaceholder')}
           maxLength={60}
           className="input text-[14px]"
         />
       </label>
 
       <div className="flex flex-col gap-1.5">
-        <span className="text-[13px] text-muted">Цвет</span>
+        <span className="text-[13px] text-muted">{t('color')}</span>
         <div className="flex flex-wrap gap-2">
           {ZONE_COLORS.map((color) => (
             <button
@@ -61,7 +62,7 @@ export function ZoneCard({
               type="button"
               onClick={() => onUpdate({ color })}
               title={color}
-              aria-label={`Цвет ${color}`}
+              aria-label={t('colorValue', { color })}
               aria-pressed={zone.color === color}
               className={cn(
                 'grid size-7 place-items-center rounded-full ring-1 ring-black/15 ring-inset',
@@ -77,12 +78,12 @@ export function ZoneCard({
 
       <ConfirmDeleteButton
         onConfirm={onRemove}
-        confirmLabel="Точно удалить?"
-        title="Удалить зону"
+        confirmLabel={t('confirmDelete')}
+        title={t('deleteZone')}
         className="flex min-h-9 items-center gap-1.5 self-start rounded-[10px] px-2.5 text-[13px] text-muted hover:bg-tint hover:text-warm"
       >
         <Trash size={14} />
-        Удалить зону
+        {t('deleteZone')}
       </ConfirmDeleteButton>
     </div>
   )

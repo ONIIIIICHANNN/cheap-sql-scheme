@@ -1,6 +1,7 @@
 import { cn } from '../../lib/cn'
 import { useTheme } from '../../theme/ThemeContext'
 import { NavIcon } from '../layout/navIcons'
+import { t } from '../../lib/i18n'
 
 interface ThemeToggleProps {
   /** icon — квадратная кнопка в углу; row — строка со подписью в меню. */
@@ -10,7 +11,7 @@ interface ThemeToggleProps {
 
 export function ThemeToggle({ variant = 'icon', className }: ThemeToggleProps) {
   const { theme, toggle } = useTheme()
-  const label = theme === 'dark' ? 'Светлая тема' : 'Тёмная тема'
+  const label = theme === 'dark' ? t('themeLight') : t('themeDark')
   const icon = theme === 'dark' ? NavIcon.sun : NavIcon.moon
 
   if (variant === 'row') {

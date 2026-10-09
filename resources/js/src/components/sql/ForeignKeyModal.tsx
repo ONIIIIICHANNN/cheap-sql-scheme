@@ -3,6 +3,7 @@ import { useMemo, useState } from 'react'
 import { cn } from '../../lib/cn'
 import { Button } from '../ui/Button'
 import { Modal } from '../ui/Modal'
+import { t } from '../../lib/i18n'
 
 export interface ForeignKeyTarget {
   value: string
@@ -116,16 +117,16 @@ function ForeignKeyDialog({
   return (
     <Modal
       open={open}
-      title="Внешний ключ"
+      title={t('foreignKeyTitle')}
       onClose={onClose}
       size="xl"
       footer={
         empty ? (
           <>
             <Button variant="secondary" onClick={onClose}>
-              Отмена
+              {t('cancel')}
             </Button>
-            <Button onClick={onCreateTable}>Создать таблицу</Button>
+            <Button onClick={onCreateTable}>{t('createTable')}</Button>
           </>
         ) : (
           <>
@@ -138,14 +139,14 @@ function ForeignKeyDialog({
                   </span>
                 </>
               ) : (
-                'Выберите колонку'
+                t('chooseColumnHint')
               )}
             </span>
             <Button variant="secondary" onClick={onClose}>
-              Отмена
+              {t('cancel')}
             </Button>
             <Button disabled={!selected} onClick={() => confirm()}>
-              Связать
+              {t('link')}
             </Button>
           </>
         )
@@ -157,15 +158,17 @@ function ForeignKeyDialog({
             <TableIcon size={22} className="text-accent" />
           </span>
           <p className="text-[13px] leading-[1.55] text-neutral-400">
-            Пока нет другой таблицы, на которую можно сослаться.
+            {t('noOtherTables')}
             <br />
-            Создайте её — затем выберите колонку для связи.
+            {t('noOtherTablesHint')}
           </p>
         </div>
       ) : (
         <div className="flex flex-col gap-3">
           <p className="m-0 text-[13px] text-neutral-500">
-            Колонка <span className="font-mono text-fg">{columnName}</span> будет ссылаться на:
+            {t('willReference').split('{column}')[0]}
+            <span className="font-mono text-fg">{columnName}</span>
+            {t('willReference').split('{column}')[1]}
           </p>
 
           <div className="flex flex-wrap items-center gap-2">
@@ -181,8 +184,8 @@ function ForeignKeyDialog({
                     setQuery('')
                   }
                 }}
-                placeholder="Таблица или колонка"
-                aria-label="Поиск таблицы или колонки"
+                placeholder={t('searchPlaceholder')}
+                aria-label={t('searchLabel')}
                 className="min-w-0 flex-1 border-none bg-transparent text-[14px] text-fg outline-none"
               />
             </label>
@@ -192,20 +195,20 @@ function ForeignKeyDialog({
                 aria-selected={sort === 'smart'}
                 onClick={() => setSort('smart')}
               >
-                Подходящие
+                {t('sortSmart')}
               </button>
               <button
                 className="seg-opt"
                 aria-selected={sort === 'alpha'}
                 onClick={() => setSort('alpha')}
               >
-                А–Я
+                {t('sortAlpha')}
               </button>
             </div>
             <button
               onClick={() => setKeysOnly((v) => !v)}
               aria-pressed={keysOnly}
-              title="Показывать только первичные и уникальные колонки"
+              title={t('keysOnlyTitle')}
               className={cn(
                 'flex min-h-10 items-center gap-1.5 rounded-[10px] border px-3 text-[13px]',
                 keysOnly
@@ -214,25 +217,25 @@ function ForeignKeyDialog({
               )}
             >
               <Key size={14} />
-              Только ключи
+              {t('keysOnly')}
             </button>
           </div>
 
           {visibleTables.length === 0 ? (
             <p className="m-0 rounded-[12px] border border-dashed border-line p-5 text-[14px] text-muted">
-              Ничего не нашлось.
-              {keysOnly && ' Попробуйте выключить «Только ключи».'}
+              {t('nothingFound')}
+              {keysOnly && t('tryKeysOff')}
             </p>
           ) : (
             <div className="grid h-[min(52vh,440px)] grid-cols-1 gap-3 min-[640px]:grid-cols-[minmax(0,260px)_1fr]">
               <div className="no-scrollbar flex min-h-0 flex-col gap-0.5 overflow-y-auto rounded-[12px] border border-line p-1.5 max-[639px]:max-h-40">
-                {visibleTables.map((t) => {
-                  const on = current?.uid === t.uid
-                  const hasSelected = t.columns.some((c) => c.value === selected)
+                {visibleTables.map((tbl) => {
+                  const on = current?.uid === tbl.uid
+                  const hasSelected = tbl.columns.some((c) => c.value === selected)
                   return (
                     <button
-                      key={t.uid}
-                      onClick={() => setActiveTable(t.uid)}
+                      key={tbl.uid}
+                      onClick={() => setActiveTable(tbl.uid)}
                       className={cn(
                         'flex min-h-10 items-center gap-2 rounded-[9px] px-2.5 text-left text-[13.5px]',
                         on ? 'bg-tint text-fg' : 'text-neutral-300 hover:bg-tint/60',
@@ -242,17 +245,17 @@ function ForeignKeyDialog({
                         size={14}
                         className={hasSelected ? 'text-lamp-ink' : 'text-muted'}
                       />
-                      <span className="min-w-0 flex-1 truncate font-mono">{t.name}</span>
-                      {sort === 'smart' && t.score === 2 && (
+                      <span className="min-w-0 flex-1 truncate font-mono">{tbl.name}</span>
+                      {sort === 'smart' && tbl.score === 2 && (
                         <Sparkle
                           size={13}
                           weight="fill"
                           className="shrink-0 text-lamp-ink"
-                          aria-label="Подходит по имени"
+                          aria-label={t('nameMatch')}
                         />
                       )}
                       <span className="shrink-0 text-[12px] text-muted tabular-nums">
-                        {t.shown.length}
+                        {tbl.shown.length}
                       </span>
                     </button>
                   )
@@ -268,7 +271,7 @@ function ForeignKeyDialog({
                       type="button"
                       onClick={() => setSelected(c.value)}
                       onDoubleClick={() => confirm(c.value)}
-                      title="Двойной клик — связать сразу"
+                      title={t('doubleClickLink')}
                       className={cn(
                         'flex w-full items-center gap-2.5 rounded-[10px] border px-3 py-2.5 text-left text-[13.5px] transition-colors',
                         on
@@ -286,7 +289,7 @@ function ForeignKeyDialog({
                       </span>
                       <span className="min-w-0 flex-1 truncate font-mono">{c.columnName}</span>
                       {c.isKey && (
-                        <Key size={13} className="shrink-0 text-lamp-ink" aria-label="Ключ" />
+                        <Key size={13} className="shrink-0 text-lamp-ink" aria-label={t('keyLabel')} />
                       )}
                       <span className="shrink-0 font-mono text-[12px] text-muted">
                         {c.columnType}

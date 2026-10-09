@@ -1,5 +1,6 @@
 import { DotsThree } from '@phosphor-icons/react'
 import { useEffect, useRef, useState } from 'react'
+import { t } from '../../lib/i18n'
 
 /** Первая плитка сетки — «создать новое» (шаблон v3). */
 export function NewTile({ title, hint, onClick }: { title: string; hint: string; onClick: () => void }) {
@@ -51,8 +52,8 @@ export function CardMenu({ label, onRemove }: { label: string; onRemove: () => v
           setOpen((o) => !o)
           setSure(false)
         }}
-        title="Ещё"
-        aria-label="Ещё"
+        title={t('more')}
+        aria-label={t('more')}
         aria-expanded={open}
         className="grid size-11 place-items-center rounded-[10px] text-muted hover:bg-tint hover:text-fg"
       >
@@ -71,7 +72,7 @@ export function CardMenu({ label, onRemove }: { label: string; onRemove: () => v
             className="flex min-h-11 items-center rounded-[10px] border px-3 text-left text-[15px] text-danger hover:bg-tint"
             style={{ borderColor: sure ? 'var(--danger)' : 'transparent' }}
           >
-            {sure ? 'Точно удалить?' : label}
+            {sure ? t('confirmDelete') : label}
           </button>
         </span>
       )}

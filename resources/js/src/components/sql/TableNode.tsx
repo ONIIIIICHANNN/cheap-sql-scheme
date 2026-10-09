@@ -2,8 +2,10 @@ import { Key, LinkSimple } from '@phosphor-icons/react'
 import { memo } from 'react'
 import type { PointerEvent as ReactPointerEvent } from 'react'
 import type { SqlColumn, SqlTable } from '../../api/types'
+import { parseMark } from '../../lib/changes'
 import { cn } from '../../lib/cn'
 import { HEADER_HEIGHT, ROW_HEIGHT, TABLE_WIDTH } from './geometry'
+import { t } from '../../lib/i18n'
 
 interface TableNodeProps {
   table: SqlTable
@@ -12,6 +14,8 @@ interface TableNodeProps {
   onSelect: (uid: string) => void
   onHeaderPointerDown: (e: ReactPointerEvent, uid: string) => void
   onColumnLinkPointerDown: (e: ReactPointerEvent, columnUid: string) => void
+  /** Что изменилось с последнего коммита (см. lib/changes). */
+  mark?: string
 }
 
 /** Короткая метка ключей/ограничений колонки для правого края строки. */
@@ -33,7 +37,9 @@ function TableNodeInner({
   onSelect,
   onHeaderPointerDown,
   onColumnLinkPointerDown,
+  mark,
 }: TableNodeProps) {
+  const changes = parseMark(mark)
   return (
     <div
       className={cn(
@@ -56,6 +62,15 @@ function TableNodeInner({
         style={{ height: HEADER_HEIGHT }}
         onPointerDown={(e) => onHeaderPointerDown(e, table.uid)}
       >
+        {changes.table && (
+          <span
+            title={changes.table === 'added' ? t('markAdded') : t('markChanged')}
+            className={cn(
+              'size-2 shrink-0 rounded-full',
+              changes.table === 'added' ? 'bg-done' : 'bg-lamp',
+            )}
+          />
+        )}
         <span className="truncate">{table.name}</span>
         {table.color && (
           <span className="ml-auto size-2 rounded-full" style={{ background: table.color }} />
@@ -72,6 +87,15 @@ function TableNodeInner({
           )}
           style={{ height: ROW_HEIGHT }}
         >
+          {changes.columns.has(column.uid) && (
+            <span
+              aria-hidden
+              className={cn(
+                'absolute top-1 bottom-1 left-0 w-[3px] rounded-r-full',
+                changes.columns.get(column.uid) === 'added' ? 'bg-done' : 'bg-lamp',
+              )}
+            />
+          )}
           <Key
             size={12}
             weight={column.is_primary ? 'fill' : 'regular'}
@@ -93,7 +117,7 @@ function TableNodeInner({
           {/* Ручка связи: тянем от колонки к колонке другой таблицы. */}
           <button
             type="button"
-            title="Связать с колонкой"
+            title={t('linkToColumn')}
             className="absolute top-1/2 -right-2 grid size-4 -translate-y-1/2 place-items-center rounded-full bg-accent text-accent-100 opacity-0 shadow-sm transition-opacity group-hover:opacity-100"
             onPointerDown={(e) => {
               e.stopPropagation()

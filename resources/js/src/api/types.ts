@@ -73,6 +73,74 @@ export interface SqlSchemaCanvas {
   zones?: SqlZone[]
 }
 
+/** Колонка в снимке — то, с чем сравниваются изменения. */
+export type SqlBaselineColumn = Pick<
+  SqlColumn,
+  | 'uid'
+  | 'name'
+  | 'type'
+  | 'length'
+  | 'nullable'
+  | 'is_primary'
+  | 'is_unique'
+  | 'is_index'
+  | 'is_auto_increment'
+  | 'default_value'
+>
+
+export interface SqlBaseline {
+  tables: { uid: string; name: string; columns: SqlBaselineColumn[] }[]
+  relations: {
+    from: string
+    to: string
+    on_delete: SqlReferentialAction | null
+    on_update: SqlReferentialAction | null
+  }[]
+}
+
+export type ChangeStatus = 'added' | 'removed' | 'changed' | 'renamed'
+
+/** Изменения для окна коммита — по таблицам. */
+export interface SchemaChangeTable {
+  uid: string
+  name: string
+  old_name: string | null
+  status: ChangeStatus
+  items: {
+    kind: 'column' | 'foreign'
+    status: ChangeStatus
+    name: string
+    old_name: string | null
+    before: string | null
+    after: string | null
+  }[]
+}
+
+export interface SchemaChanges {
+  changes: SchemaChangeTable[]
+  summary: { added: number; removed: number; changed: number }
+  empty: boolean
+  /** Предлагаемое имя миграции. */
+  name: string
+  migration: string | null
+  /** Миграции проекта, которые ещё не выполнены. */
+  pending: string[]
+  /** «posts.slug» — новые NOT NULL колонки без значения по умолчанию. */
+  required_without_default: string[]
+  can_write: boolean
+  committed_at: string | null
+}
+
+/** Изменилась ли база проекта вне редактора. */
+export interface SchemaDrift {
+  /** false — не проверяли (есть невыполненные миграции или база недоступна). */
+  checked: boolean
+  changed: boolean
+  summary?: SchemaChanges['summary']
+  changes?: SchemaChangeTable[]
+  pending: string[]
+}
+
 export interface SqlSchema {
   id: number
   user_id: number | null
@@ -80,6 +148,11 @@ export interface SqlSchema {
   description: string | null
   dialect: SqlDialect
   canvas: SqlSchemaCanvas | null
+  /** database — схема базы самого проекта. */
+  source: 'database' | null
+  /** Снимок структуры на момент последнего коммита или синхронизации. */
+  baseline?: SqlBaseline | null
+  committed_at?: string | null
   tables_count?: number
   tables?: SqlTable[]
   relations?: SqlRelation[]

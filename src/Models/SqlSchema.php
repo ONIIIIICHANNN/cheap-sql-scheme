@@ -17,12 +17,24 @@ class SqlSchema extends Model
         'name',
         'description',
         'dialect',
+        'source',
         'canvas',
+        'baseline',
+        'committed_at',
     ];
 
     protected $casts = [
         'canvas' => 'array',
+        'baseline' => 'array',
+        'committed_at' => 'datetime',
     ];
+
+    public const SOURCE_DATABASE = 'database';
+
+    public function isProjectSchema(): bool
+    {
+        return $this->source === self::SOURCE_DATABASE;
+    }
 
     /**
      * Схемы, которые видит посетитель. Обычно — все: кто попал в редактор, тот
@@ -31,7 +43,10 @@ class SqlSchema extends Model
     public function scopeVisibleTo(Builder $query, ?Authenticatable $user): void
     {
         if (config('cheap-sql-scheme.per_user') && $user) {
-            $query->where('user_id', (string) $user->getAuthIdentifier());
+            // Схема базы проекта общая — она у всех одна.
+            $query->where(fn (Builder $q) => $q
+                ->where('user_id', (string) $user->getAuthIdentifier())
+                ->orWhere('source', self::SOURCE_DATABASE));
         }
     }
 
@@ -39,6 +54,7 @@ class SqlSchema extends Model
     {
         return ! config('cheap-sql-scheme.per_user')
             || ! $user
+            || $this->isProjectSchema()
             || (string) $this->user_id === (string) $user->getAuthIdentifier();
     }
 

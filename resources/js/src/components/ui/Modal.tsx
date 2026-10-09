@@ -2,6 +2,7 @@ import { X } from '@phosphor-icons/react'
 import { AnimatePresence, motion } from 'motion/react'
 import { createContext, useContext, useEffect, type CSSProperties, type ReactNode } from 'react'
 import { cn } from '../../lib/cn'
+import { t } from '../../lib/i18n'
 
 type Size = 'md' | 'lg' | 'xl' | '2xl'
 
@@ -107,7 +108,7 @@ export function Modal({ open, title, onClose, children, footer, size = 'md', hea
                 )}
                 <button
                   onClick={onClose}
-                  aria-label="Закрыть"
+                  aria-label={t('close')}
                   className="-mt-2 -mr-2 grid size-11 shrink-0 place-items-center rounded-[10px] text-muted hover:bg-tint hover:text-fg"
                 >
                   <X size={18} />

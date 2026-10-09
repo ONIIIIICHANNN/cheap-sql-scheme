@@ -1,16 +1,19 @@
 import { Link } from 'react-router-dom'
-import { fresh, pl } from '../../lib/ax'
+import { fresh } from '../../lib/ax'
 import { relativeDay } from '../../lib/date'
 import { CardMenu, NewTile } from './ListTiles'
 import { Skeleton } from './Skeleton'
 import { Sticker, useFreshTick } from './Sticker'
 import { BackToBoards } from './BackToBoards'
+import { t, tablesCount } from '../../lib/i18n'
 
 export interface CanvasItem {
   id: number
   name: string
   /** Таблиц в схеме. */
   count: number
+  /** Схема базы самого проекта. */
+  project: boolean
   updatedAt: string
   createdAt: string
 }
@@ -57,9 +60,9 @@ export function CanvasList({ items, loading, error, hrefFor, onNew, onDelete }: 
     <div className="flex flex-col gap-[26px]">
       <div>
         <BackToBoards />
-        <h1 className="ax-title">SQL-схемы</h1>
+        <h1 className="ax-title">{t('schemasTitle')}</h1>
         <p className="mt-2 max-w-[56ch] text-[16px] leading-normal text-pretty text-muted">
-          Таблицы, ключи и связи на холсте. Готовую схему можно выгрузить в миграцию Laravel.
+          {t('schemasSubtitle')}
         </p>
       </div>
 
@@ -76,30 +79,29 @@ export function CanvasList({ items, loading, error, hrefFor, onNew, onDelete }: 
         <p className="text-[15px] text-danger">{error}</p>
       ) : items.length === 0 ? (
         <div className="grid justify-items-center gap-3 px-4 py-14 text-center">
-          <h2 className="m-0 font-num text-[24px] font-semibold">Схем пока нет</h2>
+          <h2 className="m-0 font-num text-[24px] font-semibold">{t('noSchemasTitle')}</h2>
           <p className="m-0 max-w-[46ch] text-[16px] leading-normal text-pretty text-muted">
-            Спроектируйте базу на холсте: таблицы, колонки, ключи и связи, затем выгрузите в
-            миграцию Laravel. Или начните с готового SQL-файла.
+            {t('noSchemasText')}
           </p>
           <button onClick={onNew} className="btn btn-lamp min-h-12 px-[22px] text-[16px]">
-            Создать схему
+            {t('createSchema')}
           </button>
         </div>
       ) : (
         <>
           <div className="flex flex-wrap items-end gap-x-10 gap-y-5">
             <div>
-              <p className="m-0 text-[13px] text-muted">Всего схем</p>
+              <p className="m-0 text-[13px] text-muted">{t('totalSchemas')}</p>
               <p className="ax-num mt-1.5 mb-0">{items.length}</p>
             </div>
             <div>
-              <p className="m-0 text-[13px] text-muted">Таблиц</p>
+              <p className="m-0 text-[13px] text-muted">{t('totalTables')}</p>
               <p className="ax-num mt-1.5 mb-0">{items.reduce((n, x) => n + x.count, 0)}</p>
             </div>
           </div>
 
           <div className="grid grid-cols-[repeat(auto-fill,minmax(min(300px,100%),1fr))] gap-4">
-            <NewTile title="Новая схема" hint="Пустая или из SQL-файла" onClick={onNew} />
+            <NewTile title={t('newSchema')} hint={t('newSchemaHint')} onClick={onNew} />
             {items.map((x, i) => (
               <Link
                 key={x.id}
@@ -108,14 +110,14 @@ export function CanvasList({ items, loading, error, hrefFor, onNew, onDelete }: 
               >
                 {fresh.is('sql', x.id, x.createdAt) && (
                   <Sticker k={`sql-${x.id}`} rot={-6}>
-                    новая!
+                    {t('freshSticker')}
                   </Sticker>
                 )}
                 <span className="relative block h-[132px] overflow-hidden rounded-t-[20px] bg-n800">
                   {/* Обложка условная, но не врёт: у пустой схемы — пусто, таблиц не больше, чем есть. */}
                   {x.count === 0 ? (
                     <span className="absolute inset-0 grid place-items-center text-[13px] text-muted">
-                      пока пусто
+                      {t('emptyCover')}
                     </span>
                   ) : (
                     LAYOUTS[i % 3].slice(0, x.count).map(([left, top], j) => (
@@ -141,11 +143,16 @@ export function CanvasList({ items, loading, error, hrefFor, onNew, onDelete }: 
                     <span className="min-w-0 flex-1 text-[18px] leading-[1.3] font-medium">
                       {x.name}
                     </span>
-                    <CardMenu label="Удалить" onRemove={() => onDelete(x)} />
+                    {x.project && (
+                      <span className="shrink-0 rounded-full bg-tint px-2.5 py-[3px] text-[13px] text-lamp-ink">
+                        {t('projectBadge')}
+                      </span>
+                    )}
+                    <CardMenu label={t('delete')} onRemove={() => onDelete(x)} />
                   </span>
                   <span className="flex items-center gap-2.5 text-[14px] text-muted">
                     <span className="tabular-nums">
-                      {pl(x.count, 'таблица', 'таблицы', 'таблиц')}
+                      {tablesCount(x.count)}
                     </span>
                     <span className="ml-auto">{relativeDay(x.updatedAt)}</span>
                   </span>

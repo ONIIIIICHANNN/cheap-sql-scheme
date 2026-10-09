@@ -9,6 +9,7 @@ import {
   useState,
   type ReactNode,
 } from 'react'
+import { t } from '../../lib/i18n'
 
 interface ToastState {
   id: number
@@ -87,13 +88,13 @@ export function ToastProvider({ children }: { children: ReactNode }) {
               onClick={runUndo}
               className="min-h-11 rounded-[10px] bg-lamp px-3.5 text-[15px] font-semibold text-[#1B1E27]"
             >
-              Вернуть
+              {t('undo')}
             </button>
           )}
           <button
             onClick={dismiss}
-            title="Скрыть"
-            aria-label="Скрыть"
+            title={t('hide')}
+            aria-label={t('hide')}
             className="grid size-[38px] shrink-0 place-items-center rounded-[10px] opacity-70 hover:opacity-100"
           >
             <X size={16} />

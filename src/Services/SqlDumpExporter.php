@@ -41,9 +41,9 @@ class SqlDumpExporter
 
         $label = ['mysql' => 'MySQL / MariaDB', 'pgsql' => 'PostgreSQL', 'sqlite' => 'SQLite'][$this->dialect];
         $out = [
-            '-- Cheap SQL Scheme · схема «'.$schema->name.'»',
+            '-- Cheap SQL Scheme · '.__('cheap-sql-scheme::messages.dump_schema', ['name' => $schema->name]),
             '-- '.$label.' · '.now()->format('Y-m-d H:i'),
-            '-- Структура: таблицы, ключи, индексы и связи.',
+            '-- '.__('cheap-sql-scheme::messages.dump_structure'),
             '',
         ];
 

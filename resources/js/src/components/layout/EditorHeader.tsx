@@ -2,15 +2,16 @@ import type { CSSProperties, ReactNode } from 'react'
 import { Link } from 'react-router-dom'
 import { cn } from '../../lib/cn'
 import { ThemeToggle } from '../ui/ThemeToggle'
+import { t } from '../../lib/i18n'
 
 export type SaveState = 'idle' | 'saving' | 'saved' | 'error'
 
-const SAVE: Record<SaveState, [string, string]> = {
+const SAVE = (): Record<SaveState, [string, string]> => ({
   idle: ['', ''],
-  saving: ['Сохранение…', 'var(--muted)'],
-  saved: ['Сохранено', 'var(--muted)'],
-  error: ['Не сохранилось', 'var(--danger)'],
-}
+  saving: [t('saving'), 'var(--muted)'],
+  saved: [t('saved'), 'var(--muted)'],
+  error: [t('notSaved'), 'var(--danger)'],
+})
 
 interface Props {
   backTo: string
@@ -44,7 +45,7 @@ export function EditorHeader({
   style,
   compact = false,
 }: Props) {
-  const [saveText, saveColor] = SAVE[save]
+  const [saveText, saveColor] = SAVE()[save]
   return (
     <header
       className={cn(
@@ -56,7 +57,7 @@ export function EditorHeader({
     >
       <Link
         to={backTo}
-        aria-label={`Назад: ${backLabel}`}
+        aria-label={t('backTo', { label: backLabel })}
         className="flex min-h-11 min-w-11 flex-none items-center justify-center gap-2 rounded-[10px] text-[15px] text-muted hover:bg-tint hover:text-fg min-[900px]:px-2.5"
       >
         <svg

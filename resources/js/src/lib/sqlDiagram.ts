@@ -8,6 +8,7 @@ import type {
   SqlZone,
 } from '../api/types'
 import type { DiagramPayload } from '../api/sql'
+import { t } from './i18n'
 
 /** Связь в локальной модели холста — по uid колонок, а не по id. */
 export interface DiagramRelation {
@@ -50,6 +51,7 @@ export const COLUMN_TYPES = [
   'date',
   'dateTime',
   'timestamp',
+  'time',
   'decimal',
   'float',
   'json',
@@ -126,7 +128,7 @@ export function makeZone(overrides: Partial<SqlZone> = {}): SqlZone {
     width: 360,
     height: 260,
     color: ZONE_COLORS[0],
-    label: 'Зона',
+    label: t('zone'),
     ...overrides,
   }
 }

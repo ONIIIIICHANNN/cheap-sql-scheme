@@ -3,6 +3,7 @@ import { ApiError } from '../../api/client'
 import { Button } from '../ui/Button'
 import { Input } from '../ui/Input'
 import { Modal } from '../ui/Modal'
+import { t } from '../../lib/i18n'
 
 interface SchemaSettingsModalProps {
   open: boolean
@@ -27,7 +28,7 @@ export function SchemaSettingsModal({ open, name, onClose, onSave }: SchemaSetti
 
   async function submit() {
     if (!draftName.trim()) {
-      setError('Введите название')
+      setError(t('enterName'))
       return
     }
     setBusy(true)
@@ -36,7 +37,7 @@ export function SchemaSettingsModal({ open, name, onClose, onSave }: SchemaSetti
       await onSave({ name: draftName.trim() })
       onClose()
     } catch (err) {
-      setError(err instanceof ApiError ? err.message : 'Не удалось сохранить настройки')
+      setError(err instanceof ApiError ? err.message : t('saveSettingsFailed'))
     } finally {
       setBusy(false)
     }
@@ -45,26 +46,26 @@ export function SchemaSettingsModal({ open, name, onClose, onSave }: SchemaSetti
   return (
     <Modal
       open={open}
-      title="Настройки схемы"
+      title={t('schemaSettings')}
       onClose={onClose}
       footer={
         <>
           <Button variant="secondary" onClick={onClose}>
-            Отмена
+            {t('cancel')}
           </Button>
           <Button onClick={submit} loading={busy}>
-            Сохранить
+            {t('save')}
           </Button>
         </>
       }
     >
       <div className="space-y-4">
         <Input
-          label="Название"
+          label={t('nameLabel')}
           value={draftName}
           onChange={(e) => setDraftName(e.target.value)}
           onKeyDown={(e) => e.key === 'Enter' && void submit()}
-          placeholder="Например, Интернет-магазин"
+          placeholder={t('schemaNamePlaceholder')}
           autoFocus
         />
 

@@ -33,6 +33,18 @@ test('the editor page and its assets are served', function () {
     $this->get('/sql-schemes/assets/secret.php')->assertNotFound();
 });
 
+test('the interface is english by default and russian on request', function () {
+    $this->get('/sql-schemes')->assertSee('<html lang="en"', false)->assertSee('"locale":"en"', false);
+    $other = $this->makeUser('other@example.test');
+    $schema = SqlSchema::create(['user_id' => $other->id, 'name' => 'Private']);
+    config(['cheap-sql-scheme.per_user' => true]);
+    $this->getJson(API."/{$schema->id}")->assertJsonPath('message', 'You have no access to this schema');
+
+    config(['cheap-sql-scheme.locale' => 'ru']);
+    $this->get('/sql-schemes')->assertSee('<html lang="ru"', false)->assertSee('"locale":"ru"', false);
+    $this->getJson(API."/{$schema->id}")->assertJsonPath('message', 'Нет доступа к этой схеме');
+});
+
 test('by default the editor is open to guests', function () {
     auth()->logout();
 

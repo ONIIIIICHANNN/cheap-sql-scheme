@@ -221,7 +221,7 @@ class SqlSchemaExporter
         return $content;
     }
 
-    private function migrationFile(string $up, string $down): string
+    public function migrationFile(string $up, string $down): string
     {
         return <<<PHP
         <?php
@@ -292,7 +292,7 @@ class SqlSchemaExporter
         return implode("\n", $lines);
     }
 
-    private function referentialAction(string $action, string $suffix): string
+    public function referentialAction(string $action, string $suffix): string
     {
         return match (strtolower($action)) {
             'cascade' => "->cascade{$suffix}()",
@@ -303,9 +303,9 @@ class SqlSchemaExporter
     }
 
     /** @param  array<int, string>  $foreignLines  внешние ключи прямо в Schema::create */
-    private function tableBlock(SqlTable $table, array $foreignLines = []): string
+    public function tableBlock(SqlTable $table, array $foreignLines = [], ?string $name = null): string
     {
-        $name = $this->tableName($table);
+        $name ??= $this->tableName($table);
         $lines = ["        Schema::create('{$name}', function (Blueprint \$table) {"];
 
         $hasTimestamps = false;
@@ -332,7 +332,11 @@ class SqlSchemaExporter
         return implode("\n", $lines);
     }
 
-    private function columnLine(SqlColumn $column): string
+    /**
+     * Строка колонки Blueprint. Без $withIndexes — без unique/index/primary:
+     * так колонку описывают в ->change(), а индексы ставят отдельно.
+     */
+    public function columnLine(SqlColumn $column, bool $withIndexes = true): string
     {
         $method = self::TYPE_MAP[strtolower($column->type)] ?? 'string';
 
@@ -360,13 +364,13 @@ class SqlSchemaExporter
         if ($column->nullable) {
             $line .= '->nullable()';
         }
-        if ($column->is_unique) {
+        if ($withIndexes && $column->is_unique) {
             $line .= '->unique()';
         }
-        if ($column->is_primary && ! $column->is_auto_increment) {
+        if ($withIndexes && $column->is_primary && ! $column->is_auto_increment) {
             $line .= '->primary()';
         }
-        if ($column->is_index && ! $column->is_unique && ! $column->is_primary) {
+        if ($withIndexes && $column->is_index && ! $column->is_unique && ! $column->is_primary) {
             $line .= '->index()';
         }
         if ($column->default_value !== null && $column->default_value !== '') {

@@ -1,6 +1,7 @@
 import { useEffect, useRef } from 'react'
 import type { PointerEvent as ReactPointerEvent } from 'react'
 import type { SqlZone } from '../../api/types'
+import { t } from '../../lib/i18n'
 
 interface ZoneLayerProps {
   zones: SqlZone[]
@@ -110,13 +111,13 @@ export function ZoneLayer({ zones, zoom, selected, onSelect, onUpdate }: ZoneLay
             <div
               className="flex cursor-grab items-center gap-1.5 px-3 py-2 active:cursor-grabbing"
               onPointerDown={(e) => startMove(e, zone)}
-              title="Тяните, чтобы двигать. Имя и цвет — в карточке «Зона»"
+              title={t('zoneDragHint')}
             >
               <span
                 className="flex-1 truncate text-[14px] font-semibold"
                 style={{ color: zone.color }}
               >
-                {zone.label || 'Зона'}
+                {zone.label || t('zone')}
               </span>
             </div>
 

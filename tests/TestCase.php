@@ -21,6 +21,8 @@ abstract class TestCase extends Orchestra
         $app['config']->set('app.key', 'base64:'.base64_encode(str_repeat('k', 32)));
         $app['config']->set('database.default', 'testing');
         $app['config']->set('auth.providers.users.model', User::class);
+        // Схему проекта проверяют отдельные тесты — остальным она в списке мешает.
+        $app['config']->set('cheap-sql-scheme.project_schema.enabled', false);
     }
 
     protected function defineDatabaseMigrations(): void

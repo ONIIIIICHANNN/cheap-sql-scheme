@@ -55,6 +55,8 @@ interface SqlCanvasProps {
   selectedZone: string | null
   onSelectZone: (uid: string | null) => void
   onZoneDrawn: () => void
+  /** Пометки изменений по uid таблицы (см. lib/changes). */
+  changeMarks?: Map<string, string>
 }
 
 /** Пересекаются ли два прямоугольника. */
@@ -79,6 +81,7 @@ export function SqlCanvas({
   selectedZone,
   onSelectZone,
   onZoneDrawn,
+  changeMarks,
 }: SqlCanvasProps) {
   const containerRef = useRef<HTMLDivElement>(null)
   const [view, setView] = useState(diagram.canvas)
@@ -505,6 +508,7 @@ export function SqlCanvas({
               onSelect={handleSelectTable}
               onHeaderPointerDown={handleHeaderPointerDown}
               onColumnLinkPointerDown={handleColumnLinkPointerDown}
+              mark={changeMarks?.get(table.uid)}
             />
           ))}
         </div>

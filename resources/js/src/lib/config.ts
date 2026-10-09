@@ -8,17 +8,21 @@ export interface CheapSqlSchemeConfig {
   /** Путь интерфейса без завершающего слэша — basename для роутера. */
   basePath: string
   csrfToken: string
-  user: { id: number | string; name: string } | null
   /** Куда ведёт «назад» со списка схем; null — кнопки нет. */
   backUrl: string | null
+  /** Язык интерфейса. */
+  locale: string
+  /** Можно ли записать миграции прямо в проект (по умолчанию — только local). */
+  canSaveMigrations: boolean
 }
 
 const fallback: CheapSqlSchemeConfig = {
   apiBase: '/sql-schemes/api',
   basePath: '/sql-schemes',
   csrfToken: '',
-  user: null,
   backUrl: null,
+  locale: 'en',
+  canSaveMigrations: false,
 }
 
 export const config: CheapSqlSchemeConfig = {

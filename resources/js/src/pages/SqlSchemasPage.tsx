@@ -7,6 +7,7 @@ import { useDeferredDelete } from '../hooks/useDeferredDelete'
 import { useHotkeys } from '../hooks/useHotkeys'
 import { useSqlSchemas } from '../hooks/useSqlSchemas'
 import { fresh } from '../lib/ax'
+import { t } from '../lib/i18n'
 
 export function SqlSchemasPage() {
   const { notify } = useToast()
@@ -29,6 +30,7 @@ export function SqlSchemasPage() {
       id: s.id,
       name: s.name,
       count: s.tables_count ?? 0,
+      project: s.source === 'database',
       updatedAt: s.updated_at,
       createdAt: s.created_at,
     }))
@@ -48,7 +50,7 @@ export function SqlSchemasPage() {
             unhide()
             void reload()
           })
-          notify(`«${x.name}» удалена`, () => {
+          notify(t('schemaDeleted', { name: x.name }), () => {
             deferred.cancel(x.id)
             unhide()
           })

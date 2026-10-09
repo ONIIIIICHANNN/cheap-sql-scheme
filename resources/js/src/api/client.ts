@@ -1,5 +1,6 @@
 import { config } from '../lib/config'
 import type { ApiEnvelope } from './types'
+import { t } from '../lib/i18n'
 
 /** Ошибка API с человекочитаемым сообщением и, при наличии, полями валидации. */
 export class ApiError extends Error {
@@ -70,7 +71,7 @@ export async function request<T>(
   const json = await response.json().catch(() => null)
 
   if (!response.ok) {
-    const message = (json && (json.message as string)) || `Ошибка запроса (${response.status})`
+    const message = (json && (json.message as string)) || t('requestFailed', { status: response.status })
     const errors = json?.errors as Record<string, string[]> | undefined
     throw new ApiError(message, response.status, errors)
   }

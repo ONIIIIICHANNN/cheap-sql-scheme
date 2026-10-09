@@ -3,6 +3,12 @@
 namespace CheapSqlScheme\Http\Controllers;
 
 use CheapSqlScheme\Models\SqlSchema;
+use CheapSqlScheme\Services\MigrationGenerator;
+use CheapSqlScheme\Services\MigrationWriter;
+use CheapSqlScheme\Services\PendingMigrations;
+use CheapSqlScheme\Services\ProjectSchema;
+use CheapSqlScheme\Services\SchemaDiff;
+use CheapSqlScheme\Services\Snapshot;
 use CheapSqlScheme\Services\SqlDumpExporter;
 use CheapSqlScheme\Services\SqlSchemaExporter;
 use CheapSqlScheme\Services\SqlSchemaImporter;
@@ -11,17 +17,168 @@ use Illuminate\Http\Request;
 use Illuminate\Routing\Controller;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
+use InvalidArgumentException;
+use Throwable;
 
 class SqlSchemaController extends Controller
 {
-    public function index(Request $request)
+    public function index(Request $request, ProjectSchema $project)
     {
+        // Схема базы самого проекта появляется при первом открытии редактора.
+        $project->ensure();
+
         $schemas = SqlSchema::visibleTo($request->user())
             ->withCount('tables')
+            ->orderByRaw("CASE WHEN source = 'database' THEN 0 ELSE 1 END")
             ->orderByDesc('updated_at')
-            ->get();
+            ->get()
+            ->each->makeHidden('baseline');
 
         return $this->success($schemas);
+    }
+
+    /**
+     * GET /schemas/{id}/changes — что изменилось с последнего коммита:
+     * список для окна коммита, готовая миграция и невыполненные миграции проекта.
+     */
+    public function changes(
+        Request $request,
+        SqlSchema $sqlSchema,
+        MigrationGenerator $generator,
+        PendingMigrations $pending,
+    ) {
+        $this->authorizeAccess($request, $sqlSchema);
+
+        $diff = SchemaDiff::compare($sqlSchema->baseline, Snapshot::fromSchema($sqlSchema));
+        $name = $generator->suggestName($diff);
+
+        return $this->success([
+            'changes' => $diff->present(),
+            'summary' => $diff->summary(),
+            'empty' => $diff->isEmpty(),
+            'name' => $name,
+            'migration' => $diff->isEmpty() ? null : $generator->generate($diff),
+            'pending' => $pending->list(),
+            'required_without_default' => $diff->requiredWithoutDefault(),
+            'can_write' => self::canSaveMigrations(),
+            'committed_at' => $sqlSchema->committed_at,
+        ]);
+    }
+
+    /**
+     * POST /schemas/{id}/commit — зафиксировать изменения: собрать миграцию,
+     * при write — записать её в проект, и сдвинуть базовый снимок.
+     */
+    public function commit(
+        Request $request,
+        SqlSchema $sqlSchema,
+        MigrationGenerator $generator,
+        MigrationWriter $writer,
+    ) {
+        $this->authorizeAccess($request, $sqlSchema);
+        $validated = $request->validate([
+            'name' => ['nullable', 'string', 'max:120', 'regex:/^[a-z0-9_]+$/'],
+            'write' => 'boolean',
+        ]);
+        $write = $request->boolean('write');
+        abort_if($write && ! self::canSaveMigrations(), 403, __('cheap-sql-scheme::messages.save_disabled'));
+
+        $sqlSchema->load(['tables.columns', 'relations']);
+        $current = Snapshot::fromSchema($sqlSchema);
+        $diff = SchemaDiff::compare($sqlSchema->baseline, $current);
+        abort_if($diff->isEmpty(), 422, __('cheap-sql-scheme::messages.nothing_to_commit'));
+
+        try {
+            $writer->assertSafe($sqlSchema);
+            $writer->assertSafeSnapshot($sqlSchema->baseline);
+        } catch (InvalidArgumentException $e) {
+            abort(422, __('cheap-sql-scheme::messages.unsafe_name', ['name' => $e->getMessage()]));
+        }
+
+        $content = $generator->generate($diff);
+        $filename = now()->format('Y_m_d_His').'_'.($validated['name'] ?? $generator->suggestName($diff)).'.php';
+        if ($write) {
+            $writer->put($filename, $content);
+        }
+
+        $sqlSchema->update([
+            'baseline' => $this->keepForeignKeyNames($sqlSchema->baseline, $current),
+            'committed_at' => now(),
+        ]);
+
+        return $this->success([
+            'filename' => $filename,
+            'content' => $content,
+            'written' => $write,
+            'path' => $write ? $this->relativePath($writer->directory()) : null,
+        ]);
+    }
+
+    /**
+     * GET /schemas/{id}/drift — изменилась ли база вне редактора (миграции в
+     * обход него, правки руками). Пока есть невыполненные миграции, база
+     * законно отстаёт от схемы — тогда не проверяем, чтобы не пугать зря.
+     */
+    public function drift(Request $request, SqlSchema $sqlSchema, ProjectSchema $project, PendingMigrations $pending)
+    {
+        $this->authorizeAccess($request, $sqlSchema);
+        abort_unless($sqlSchema->isProjectSchema(), 422);
+
+        $pendingList = $pending->list();
+        if ($pendingList !== []) {
+            return $this->success(['checked' => false, 'changed' => false, 'pending' => $pendingList]);
+        }
+
+        try {
+            $diff = $project->drift($sqlSchema);
+        } catch (Throwable $e) {
+            report($e);
+
+            return $this->success(['checked' => false, 'changed' => false, 'pending' => []]);
+        }
+
+        return $this->success([
+            'checked' => true,
+            'changed' => ! $diff->isEmpty(),
+            'summary' => $diff->summary(),
+            'changes' => $diff->present(),
+            'pending' => [],
+        ]);
+    }
+
+    /** POST /schemas/{id}/sync — подтянуть структуру из базы проекта. */
+    public function sync(Request $request, SqlSchema $sqlSchema, ProjectSchema $project)
+    {
+        $this->authorizeAccess($request, $sqlSchema);
+        abort_unless($sqlSchema->isProjectSchema(), 422);
+
+        return $this->success($project->sync($sqlSchema));
+    }
+
+    /**
+     * Новый базовый снимок. У внешних ключей, которые не менялись, остаются
+     * настоящие имена из базы — по ним их потом и снимут.
+     */
+    private function keepForeignKeyNames(?array $base, array $current): array
+    {
+        $names = [];
+        foreach ($base['relations'] ?? [] as $relation) {
+            if (! empty($relation['name'])) {
+                $names[$relation['from'].'>'.$relation['to']] = $relation['name'];
+            }
+        }
+        foreach ($current['relations'] as &$relation) {
+            $relation['name'] = $names[$relation['from'].'>'.$relation['to']] ?? null;
+        }
+        unset($relation);
+
+        return $current;
+    }
+
+    private function relativePath(string $path): string
+    {
+        // Путь от корня проекта и с «/» — на Windows тоже.
+        return str_replace('\\', '/', ltrim(Str::after($path, base_path()), '\\/'));
     }
 
     public function store(Request $request)
@@ -88,7 +245,7 @@ class SqlSchemaController extends Controller
 
         $sqlSchema->delete();
 
-        return $this->success(null, 'Схема удалена');
+        return $this->success(null, __('cheap-sql-scheme::messages.deleted'));
     }
 
     /**
@@ -245,6 +402,49 @@ class SqlSchemaController extends Controller
         ]);
     }
 
+    /**
+     * POST /schemas/{id}/save-migrations — записать миграции прямо в проект.
+     * Если у таблиц уже есть миграции и overwrite не передан — 409 со списком.
+     */
+    public function saveMigrations(Request $request, SqlSchema $sqlSchema, MigrationWriter $writer)
+    {
+        $this->authorizeAccess($request, $sqlSchema);
+        abort_unless(self::canSaveMigrations(), 403, __('cheap-sql-scheme::messages.save_disabled'));
+
+        $sqlSchema->load(['tables.columns', 'relations']);
+
+        try {
+            $writer->assertSafe($sqlSchema);
+        } catch (InvalidArgumentException $e) {
+            abort(422, __('cheap-sql-scheme::messages.unsafe_name', ['name' => $e->getMessage()]));
+        }
+
+        $conflicts = $writer->conflicts($sqlSchema);
+        if ($conflicts !== [] && ! $request->boolean('overwrite')) {
+            return response()->json([
+                'message' => __('cheap-sql-scheme::messages.migrations_exist'),
+                'errors' => ['conflicts' => array_values($conflicts)],
+                'success' => false,
+            ], 409);
+        }
+
+        $files = $writer->write($sqlSchema);
+
+        return $this->success([
+            'path' => $this->relativePath($writer->directory()),
+            'files' => $files,
+        ]);
+    }
+
+    /**
+     * Запись в проект — только где это безопасно: по умолчанию в local,
+     * иначе как задано в конфиге save_migrations.
+     */
+    public static function canSaveMigrations(): bool
+    {
+        return (bool) (config('cheap-sql-scheme.save_migrations') ?? app()->environment('local'));
+    }
+
     /** Импорт из SQL-дампа или миграции Laravel в новую схему. */
     public function import(Request $request, SqlSchemaImporter $importer)
     {
@@ -280,7 +480,7 @@ class SqlSchemaController extends Controller
         abort_unless(
             $sqlSchema->isVisibleTo($request->user()),
             403,
-            'Нет доступа к этой схеме',
+            __('cheap-sql-scheme::messages.forbidden'),
         );
     }
 }

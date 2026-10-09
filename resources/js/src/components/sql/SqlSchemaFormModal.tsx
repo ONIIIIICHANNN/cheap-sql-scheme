@@ -6,6 +6,7 @@ import type { SqlSchema } from '../../api/types'
 import { Button } from '../ui/Button'
 import { Input } from '../ui/Input'
 import { Modal } from '../ui/Modal'
+import { t } from '../../lib/i18n'
 
 interface SqlSchemaFormModalProps {
   open: boolean
@@ -37,7 +38,7 @@ export function SqlSchemaFormModal({ open, onClose, onSubmit, onImport }: SqlSch
 
   async function submit() {
     if (!name.trim()) {
-      setError('Введите название')
+      setError(t('enterName'))
       return
     }
     setBusy(true)
@@ -51,7 +52,7 @@ export function SqlSchemaFormModal({ open, onClose, onSubmit, onImport }: SqlSch
       reset()
       onClose()
     } catch (err) {
-      setError(err instanceof ApiError ? err.message : 'Не удалось создать схему')
+      setError(err instanceof ApiError ? err.message : t('createSchemaFailed'))
     } finally {
       setBusy(false)
     }
@@ -60,30 +61,30 @@ export function SqlSchemaFormModal({ open, onClose, onSubmit, onImport }: SqlSch
   return (
     <Modal
       open={open}
-      title="Новая схема БД"
+      title={t('newSchemaTitle')}
       onClose={onClose}
       footer={
         <>
           <Button variant="secondary" onClick={onClose}>
-            Отмена
+            {t('cancel')}
           </Button>
           <Button onClick={submit} loading={busy}>
-            {importFile ? 'Создать из файла' : 'Создать'}
+            {importFile ? t('createFromFile') : t('create')}
           </Button>
         </>
       }
     >
       <div className="space-y-3.5">
         <Input
-          label="Название"
+          label={t('nameLabel')}
           value={name}
           onChange={(e) => setName(e.target.value)}
-          placeholder="Например, Интернет-магазин"
+          placeholder={t('schemaNamePlaceholder')}
           autoFocus
         />
 
         <div className="field">
-          <label className="mb-1.5 block">Импорт из SQL (необязательно)</label>
+          <label className="mb-1.5 block">{t('importOptional')}</label>
           {importFile ? (
             <div className="flex items-center gap-2 rounded-lg border border-accent/40 bg-accent/8 px-3 py-2.5 text-[12.5px]">
               <FileArrowUp size={16} className="shrink-0 text-accent" />
@@ -92,7 +93,7 @@ export function SqlSchemaFormModal({ open, onClose, onSubmit, onImport }: SqlSch
                 type="button"
                 onClick={() => setImportFile(null)}
                 className="grid size-5 place-items-center rounded-sm text-neutral-500 hover:text-danger"
-                title="Убрать файл"
+                title={t('removeFile')}
               >
                 <X size={13} />
               </button>
@@ -103,7 +104,7 @@ export function SqlSchemaFormModal({ open, onClose, onSubmit, onImport }: SqlSch
               onClick={() => fileRef.current?.click()}
               className="flex w-full items-center justify-center gap-2 rounded-lg border border-dashed border-divider py-2.5 text-[12.5px] text-neutral-500 transition-colors hover:border-accent-700 hover:text-accent"
             >
-              <FileArrowUp size={15} /> Выбрать .sql или файл миграции
+              <FileArrowUp size={15} /> {t('pickFile')}
             </button>
           )}
           <input
@@ -119,7 +120,7 @@ export function SqlSchemaFormModal({ open, onClose, onSubmit, onImport }: SqlSch
           />
           {importFile && (
             <p className="mt-1.5 text-[11.5px] text-neutral-500">
-              Таблицы из файла разложатся по холсту автоматически.
+              {t('importHint')}
             </p>
           )}
         </div>

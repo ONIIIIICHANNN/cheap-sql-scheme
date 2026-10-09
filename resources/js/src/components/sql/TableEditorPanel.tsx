@@ -10,12 +10,13 @@ import {
 import { SortableContext, useSortable, verticalListSortingStrategy } from '@dnd-kit/sortable'
 import { CSS } from '@dnd-kit/utilities'
 import { ArrowLeft, DotsSixVertical, Lock, Plus, Trash } from '@phosphor-icons/react'
-import { useState, type PointerEvent as ReactPointerEvent } from 'react'
+import { Fragment, useState, type PointerEvent as ReactPointerEvent } from 'react'
 import type { SqlColumn, SqlTable } from '../../api/types'
 import type { DiagramRelation } from '../../lib/sqlDiagram'
 import { COLUMN_TYPES } from '../../lib/sqlDiagram'
 import { cn } from '../../lib/cn'
 import { ForeignKeyModal, type ForeignKeyTarget } from './ForeignKeyModal'
+import { t } from '../../lib/i18n'
 
 /** Перетаскивание колонок строго по вертикали — без смещения по горизонтали. */
 const restrictToVerticalAxis: Modifier = ({ transform }) => ({ ...transform, x: 0 })
@@ -109,14 +110,14 @@ function ColumnCard({
           onChange={(e) => onUpdate({ name: e.target.value })}
           onPointerDown={stopDrag}
           className="input h-8 min-w-0 flex-1 text-[12.5px] select-text"
-          aria-label="Имя колонки"
+          aria-label={t('columnName')}
         />
         <select
           value={column.type}
           onChange={(e) => onUpdate({ type: e.target.value })}
           onPointerDown={stopDrag}
           className="input h-8 w-[92px] text-[12px]"
-          aria-label="Тип колонки"
+          aria-label={t('columnType')}
         >
           {COLUMN_TYPES.map((type) => (
             <option key={type} value={type} className="bg-surface text-fg">
@@ -128,14 +129,14 @@ function ColumnCard({
           <button
             onClick={onRemove}
             onPointerDown={stopDrag}
-            title="Удалить колонку"
+            title={t('deleteColumn')}
             className="grid size-8 shrink-0 place-items-center rounded-sm text-neutral-600 transition-colors hover:bg-danger/10 hover:text-danger"
           >
             <Trash size={13} />
           </button>
         ) : (
           <span
-            title="Первичный ключ нельзя удалить"
+            title={t('primaryKeyLocked')}
             className="grid size-8 shrink-0 place-items-center rounded-sm text-neutral-700"
           >
             <Lock size={12} />
@@ -173,15 +174,15 @@ function ColumnCard({
 
       {/* Внешний ключ: галочка открывает модалку выбора цели. */}
       <div className="mt-2 border-t border-divider pt-2" onPointerDown={stopDrag}>
-        <Toggle label="Внешний ключ (FK)" checked={!!fk} onChange={onToggleFk} />
+        <Toggle label={t('foreignKeyToggle')} checked={!!fk} onChange={onToggleFk} />
         {fk && (
           <button
             type="button"
             onClick={onEditFk}
             className="mt-1.5 flex h-8 w-full items-center justify-between rounded-sm border border-divider px-2.5 text-[12px] text-neutral-300 transition-colors hover:border-accent-700 hover:text-accent"
           >
-            <span className="truncate">→ {fkLabel ?? 'выбрать колонку'}</span>
-            <span className="text-[11px] text-neutral-500">изменить</span>
+            <span className="truncate">→ {fkLabel ?? t('chooseColumn')}</span>
+            <span className="text-[11px] text-neutral-500">{t('change')}</span>
           </button>
         )}
       </div>
@@ -236,6 +237,23 @@ export function TableEditorPanel({
     if (from >= 0 && to >= 0) onReorderColumns(from, to)
   }
 
+  // «+ Колонка» стоит там, куда встанет новая колонка: перед created_at / updated_at в конце.
+  let addAt = table.columns.length
+  while (
+    addAt > 0 &&
+    ['created_at', 'updated_at'].includes(table.columns[addAt - 1].name.toLowerCase())
+  ) {
+    addAt--
+  }
+  const addButton = (
+    <button
+      onClick={onAddColumn}
+      className="flex w-full items-center justify-center gap-1.5 rounded-lg border border-dashed border-divider py-2 text-[12.5px] text-neutral-500 transition-colors hover:border-accent-700 hover:text-accent"
+    >
+      <Plus size={13} /> {t('addColumn')}
+    </button>
+  )
+
   const fkColumn = fkModalFor ? table.columns.find((c) => c.uid === fkModalFor) : null
   const fkRelation = fkModalFor ? relations.find((r) => r.from === fkModalFor) : undefined
 
@@ -244,7 +262,7 @@ export function TableEditorPanel({
       <div className="flex items-center gap-2 border-b border-divider px-3 py-3">
         <button
           onClick={onBack}
-          title="К списку таблиц"
+          title={t('backToTables')}
           className="grid size-8 shrink-0 place-items-center rounded-sm text-neutral-500 transition-colors hover:bg-[rgb(var(--ink)/0.06)] hover:text-fg"
         >
           <ArrowLeft size={15} />
@@ -253,11 +271,11 @@ export function TableEditorPanel({
           value={table.name}
           onChange={(e) => onUpdateTable({ name: e.target.value })}
           className="input flex-1 font-semibold select-text"
-          aria-label="Имя таблицы"
+          aria-label={t('tableName')}
         />
         <button
           onClick={onRemoveTable}
-          title="Удалить таблицу"
+          title={t('deleteTable')}
           className="grid size-8 shrink-0 place-items-center rounded-sm text-neutral-500 transition-colors hover:bg-danger/10 hover:text-danger"
         >
           <Trash size={15} />
@@ -276,14 +294,15 @@ export function TableEditorPanel({
             strategy={verticalListSortingStrategy}
           >
             <div className="space-y-2.5">
-              {table.columns.map((column) => {
+              {table.columns.map((column, index) => {
                 const fk = relations.find((r) => r.from === column.uid)
                 // Первичный ключ / id защищён от удаления.
                 const deletable = !column.is_primary
 
                 return (
+                  <Fragment key={column.uid}>
+                  {index === addAt && addButton}
                   <ColumnCard
-                    key={column.uid}
                     column={column}
                     fk={fk}
                     fkLabel={labelForTarget(fk?.to)}
@@ -299,18 +318,13 @@ export function TableEditorPanel({
                     }}
                     onEditFk={() => setFkModalFor(column.uid)}
                   />
+                  </Fragment>
                 )
               })}
+              {addAt === table.columns.length && addButton}
             </div>
           </SortableContext>
         </DndContext>
-
-        <button
-          onClick={onAddColumn}
-          className="flex w-full items-center justify-center gap-1.5 rounded-lg border border-dashed border-divider py-2 text-[12.5px] text-neutral-500 transition-colors hover:border-accent-700 hover:text-accent"
-        >
-          <Plus size={13} /> Колонка
-        </button>
       </div>
 
       <ForeignKeyModal

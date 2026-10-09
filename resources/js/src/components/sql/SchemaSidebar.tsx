@@ -1,6 +1,7 @@
 import { DownloadSimple, GearSix, Plus, Table as TableIcon, Trash } from '@phosphor-icons/react'
 import type { SqlTable } from '../../api/types'
 import { cn } from '../../lib/cn'
+import { t, tablesCount } from '../../lib/i18n'
 
 interface SchemaSidebarProps {
   schemaName: string
@@ -31,25 +32,25 @@ export function SchemaSidebar({
     <aside className="flex h-full w-[320px] shrink-0 flex-col border-r border-divider bg-surface select-none">
       <div className="border-b border-divider px-4 py-3.5">
         <span className="mb-1 block text-[11px] tracking-wide text-neutral-500 uppercase">
-          База данных
+          {t('database')}
         </span>
         <p className="truncate text-[16px] font-semibold tracking-[-0.01em]" title={schemaName}>
           {schemaName}
         </p>
         <div className="mt-2 flex items-center gap-2">
-          <span className="text-[11px] text-neutral-500">{tables.length} таблиц</span>
+          <span className="text-[11px] text-neutral-500">{tablesCount(tables.length)}</span>
         </div>
 
         <button
           onClick={onOpenSettings}
           className="mt-3 flex w-full items-center justify-center gap-2 rounded-lg border border-divider py-2 text-[12.5px] text-neutral-300 transition-colors hover:border-accent-700 hover:text-accent"
         >
-          <GearSix size={14} /> Настройки
+          <GearSix size={14} /> {t('settingsAction')}
         </button>
       </div>
 
       <div className="flex items-center justify-between px-4 pt-3 pb-2">
-        <span className="text-[11px] tracking-wide text-neutral-500 uppercase">Таблицы</span>
+        <span className="text-[11px] tracking-wide text-neutral-500 uppercase">{t('tablesHeading')}</span>
       </div>
 
       <div className="px-3">
@@ -57,14 +58,14 @@ export function SchemaSidebar({
           onClick={onAddTable}
           className="flex w-full items-center justify-center gap-1.5 rounded-lg border border-accent/40 bg-accent/8 py-2 text-[12.5px] font-medium text-accent transition-colors hover:bg-accent/14"
         >
-          <Plus size={14} /> Добавить таблицу
+          <Plus size={14} /> {t('addTable')}
         </button>
       </div>
 
       <div className="mt-2 min-h-0 flex-1 space-y-0.5 overflow-y-auto px-2 pb-2">
         {tables.length === 0 ? (
           <p className="px-2 py-4 text-center text-[12px] leading-[1.5] text-neutral-500">
-            Пока пусто. Добавьте таблицу — она появится на холсте.
+            {t('noTablesYet')}
           </p>
         ) : (
           tables.map((table) => (
@@ -84,9 +85,9 @@ export function SchemaSidebar({
               <button
                 onClick={(e) => {
                   e.stopPropagation()
-                  if (confirm(`Удалить таблицу «${table.name}»?`)) onRemoveTable(table.uid)
+                  if (confirm(t('confirmDeleteTable', { name: table.name }))) onRemoveTable(table.uid)
                 }}
-                title="Удалить таблицу"
+                title={t('deleteTable')}
                 className="grid size-5 shrink-0 place-items-center rounded-sm text-neutral-600 opacity-0 transition-all group-hover:opacity-100 hover:text-danger"
               >
                 <Trash size={12} />
@@ -101,7 +102,7 @@ export function SchemaSidebar({
           onClick={onExport}
           className="flex w-full items-center justify-center gap-2 rounded-lg border border-divider py-2 text-[12.5px] text-neutral-300 transition-colors hover:border-accent-700 hover:text-accent"
         >
-          <DownloadSimple size={14} /> Экспорт в миграцию
+          <DownloadSimple size={14} /> {t('exportToMigration')}
         </button>
       </div>
     </aside>
