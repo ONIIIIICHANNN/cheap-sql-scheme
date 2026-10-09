@@ -1,0 +1,1089 @@
+@import 'tailwindcss';
+
+/*
+  Axion v3 «Серьёзная тетрадь, озорные поля».
+
+  Палитра «Лампа в темноте» (тёмная, базовая) и «Бумага днём» (светлая,
+  [data-theme='light']). Янтарь (--lamp) — только «сегодня / сейчас / главное
+  действие», розовый (--stk-bg) — только заливка наклеек.
+
+  Сырые токены v3 (--bg, --surface, --lamp, …) лежат в :root — их понимает
+  разметка, перенесённая из дизайна. Поверх них — имена Tailwind
+  (--color-*), включая старые имена v2 (accent, warm, green, neutral-*),
+  чтобы экраны, ещё не перерисованные, сразу говорили новой палитрой.
+*/
+:root {
+  --bg: #0e1220;
+  --surface: #161b2b;
+  --text: #ede6d8;
+  --muted: #a09c90;
+  --n800: #262c40;
+  --n700: #4c5266;
+  --line: rgba(237, 230, 216, 0.12);
+  --tint: rgba(255, 178, 62, 0.1);
+  --lamp: #ffb23e;
+  --lamp-ink: #ffb23e;
+  --lamp-soft: rgba(255, 178, 62, 0.14);
+  --done: #7fb38a;
+  --done-soft: rgba(127, 179, 138, 0.2);
+  --harm: #e39a78;
+  --on: #0e1220;
+  --sun: #ffb23e;
+  --danger: #ff7a66;
+  --shadow: 0 0 0 1px var(--line);
+  --shadow-pop: 0 0 0 1px var(--line), 0 24px 60px rgba(0, 0, 0, 0.45);
+  --overlay: rgba(5, 7, 14, 0.66);
+  --stk-bg: #ff8fc1;
+  --stk-ink: #1b1e27;
+  --stk-line: #ede6d8;
+  --stk-bw: 3px;
+  --stk-shadow: 0 8px 18px rgba(0, 0, 0, 0.5);
+  --ax-veil: rgba(22, 27, 43, 0.96);
+  --f-ui: 'Onest', system-ui, sans-serif;
+  --f-num: 'Unbounded', 'Onest', system-ui, sans-serif;
+  --f-hand: 'Caveat', 'Segoe Print', cursive;
+  color-scheme: dark;
+}
+[data-theme='light'] {
+  --bg: #f6f2ea;
+  --surface: #ffffff;
+  --text: #1b1e27;
+  --muted: #5f5b52;
+  --n800: #ece6da;
+  --n700: #968d7d;
+  --line: rgba(27, 30, 39, 0.12);
+  --tint: rgba(184, 110, 0, 0.09);
+  --lamp: #ffb23e;
+  --lamp-ink: #9a5b00;
+  --lamp-soft: rgba(255, 178, 62, 0.22);
+  --done: #5e9a6c;
+  --done-soft: rgba(94, 154, 108, 0.2);
+  --harm: #d0805c;
+  --on: #1b1e27;
+  --sun: #f29a00;
+  --danger: #b2402f;
+  --shadow: 0 1px 2px rgba(27, 30, 39, 0.05), 0 0 0 1px var(--line);
+  --shadow-pop: 0 0 0 1px var(--line), 0 24px 60px rgba(27, 30, 39, 0.18);
+  --overlay: rgba(27, 30, 39, 0.35);
+  --stk-line: #1b1e27;
+  --stk-bw: 2px;
+  --stk-shadow: 3px 3px 0 #1b1e27;
+  --ax-veil: rgba(255, 255, 255, 0.97);
+  color-scheme: light;
+}
+
+@theme inline {
+  /* — v3 — */
+  --color-bg: var(--bg);
+  --color-surface: var(--surface);
+  --color-raise: var(--surface);
+  --color-text: var(--text);
+  --color-fg: var(--text);
+  --color-muted: var(--muted);
+  --color-faint: var(--muted);
+  --color-n800: var(--n800);
+  --color-n700: var(--n700);
+  --color-line: var(--line);
+  --color-divider: var(--line);
+  --color-line-strong: var(--n700);
+  --color-tint: var(--tint);
+  --color-lamp: var(--lamp);
+  --color-lamp-ink: var(--lamp-ink);
+  --color-lamp-soft: var(--lamp-soft);
+  --color-done: var(--done);
+  --color-done-soft: var(--done-soft);
+  --color-harm: var(--harm);
+  --color-on: var(--on);
+  --color-sun: var(--sun);
+  --color-danger: var(--danger);
+  --color-danger-soft: color-mix(in srgb, var(--danger) 14%, transparent);
+  --color-stk: var(--stk-bg);
+  --color-stk-ink: var(--stk-ink);
+  --color-elevated: var(--surface);
+
+  /* — имена v2 поверх v3 — */
+  --color-accent: var(--lamp-ink);
+  --color-accent-fg: var(--on);
+  --color-accent-soft: var(--tint);
+  --color-accent-100: var(--text);
+  --color-accent-200: var(--text);
+  --color-accent-300: var(--lamp-ink);
+  --color-accent-400: var(--lamp-ink);
+  --color-accent-500: var(--lamp-ink);
+  --color-accent-600: var(--n700);
+  --color-accent-700: var(--n700);
+  --color-accent-800: var(--tint);
+  --color-accent-900: var(--tint);
+  --color-on-accent: var(--on);
+  --color-accent2: var(--harm);
+  --color-accent2-100: var(--text);
+  --color-accent2-200: var(--text);
+  --color-accent2-300: var(--harm);
+  --color-accent2-400: var(--harm);
+  --color-accent2-500: var(--harm);
+  --color-accent2-600: var(--harm);
+  --color-accent2-700: var(--n700);
+  --color-accent2-800: var(--lamp-soft);
+  --color-accent2-900: var(--lamp-soft);
+  --color-purple: var(--harm);
+  --color-purple-soft: var(--lamp-soft);
+  --color-warm: var(--harm);
+  --color-warm-soft: var(--lamp-soft);
+  --color-green: var(--done);
+  --color-green-soft: var(--done-soft);
+  --color-success: var(--done);
+  --color-success-soft: var(--done-soft);
+  --color-warning: var(--harm);
+  --color-warning-soft: var(--lamp-soft);
+
+  --color-neutral-100: var(--text);
+  --color-neutral-200: var(--text);
+  --color-neutral-300: var(--text);
+  --color-neutral-400: var(--muted);
+  --color-neutral-500: var(--muted);
+  --color-neutral-600: var(--muted);
+  --color-neutral-700: var(--n700);
+  --color-neutral-800: var(--n800);
+  --color-neutral-900: var(--n800);
+
+  --color-skel-base: var(--n800);
+  --color-skel-hi: var(--surface);
+  --color-section: var(--surface);
+  --color-section-glow: var(--n800);
+  --color-section-ghost: var(--n800);
+
+  /* — типографика: Onest — интерфейс, Unbounded — заголовки и числа, Caveat — пометки — */
+  --font-sans: var(--f-ui);
+  --font-body: var(--f-ui);
+  /* Как в v3: заголовки без явного шрифта — Onest; Unbounded только там, где задан (ax-title, font-num). */
+  --font-heading: var(--f-ui);
+  --font-num: var(--f-num);
+  --font-hand: var(--f-hand);
+  --font-mono: ui-monospace, 'SF Mono', 'JetBrains Mono', monospace;
+
+  /* Скругления v3: 6 / 10 / 14 / 20 / 24. */
+  --radius-xs: 6px;
+  --radius-sm: 10px;
+  --radius-md: 10px;
+  --radius-lg: 14px;
+  --radius-xl: 20px;
+  --radius-2xl: 24px;
+
+  --shadow-sm: var(--shadow);
+  --shadow-md: var(--shadow-pop);
+  --shadow-lg: var(--shadow-pop);
+  --shadow-soft: var(--shadow);
+  --shadow-card: var(--shadow);
+  --shadow-pop: var(--shadow-pop);
+
+  --animate-fade-in: ax-fade-in 0.2s ease both;
+  --animate-shimmer: ax-shimmer 1.4s ease-in-out infinite;
+}
+
+@theme {
+  --spacing-ds-1: 2.8px;
+  --spacing-ds-2: 5.6px;
+  --spacing-ds-3: 8.4px;
+  --spacing-ds-4: 11.2px;
+  --spacing-ds-6: 16.8px;
+  --spacing-ds-8: 22.4px;
+}
+
+/*
+  --ink / --ground RGB-тройками: подсветки строк и наведения задаются как
+  rgb(var(--ink) / 0.06) и работают в обеих темах.
+*/
+:root {
+  --ink: 237 230 216;
+  --ground: 14 18 32;
+}
+[data-theme='light'] {
+  --ink: 27 30 39;
+  --ground: 246 242 234;
+}
+
+
+/* ─────────────────────────────  база  ─────────────────────────────
+   Строго в @layer base: правила вне слоя перебивают любые утилиты
+   Tailwind, и тогда `border-accent` или `text-fg` на ссылке молча не
+   работают.
+   ───────────────────────────────────────────────────────────────── */
+@layer base {
+  html {
+    font-size: 16px;
+  }
+
+  *,
+  *::before,
+  *::after {
+    border-color: var(--color-divider);
+  }
+
+  html,
+  body,
+  #cheap-sql-scheme {
+    height: 100%;
+  }
+
+  body {
+    margin: 0;
+    background: var(--color-bg);
+    color: var(--color-text);
+    font-family: var(--font-body);
+    font-size: 15.5px;
+    line-height: 1.55;
+    -webkit-font-smoothing: antialiased;
+    text-rendering: optimizeLegibility;
+    transition:
+      background-color 0.2s ease,
+      color 0.2s ease;
+  }
+
+  h1,
+  h2,
+  h3,
+  h4,
+  h5,
+  h6 {
+    font-family: var(--font-heading);
+    font-weight: 600;
+    line-height: 1.15;
+    letter-spacing: -0.01em;
+  }
+
+  a {
+    color: var(--color-accent);
+    text-decoration: none;
+  }
+
+  /* Лёгкое нажатие — подпись v2. */
+  button,
+  a {
+    transition:
+      background-color 0.18s ease,
+      border-color 0.18s ease,
+      color 0.18s ease,
+      box-shadow 0.2s ease,
+      transform 0.16s ease;
+  }
+  button:not(:disabled):active {
+    transform: scale(0.97);
+  }
+
+  /* Состояния тематические, а не браузерные. */
+  :focus {
+    outline: none;
+  }
+  :focus-visible {
+    outline: 2px solid var(--color-accent);
+    outline-offset: 2px;
+  }
+  ::selection {
+    background: var(--color-tint);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    transition-duration: 0.01ms !important;
+  }
+}
+
+/* ────────────────────────  слой компонентов  ───────────────────────
+   Классы Nocturne, чтобы разметку можно было переносить из дизайна без
+   перевода в утилиты. Лежат в @layer components — любая утилита
+   Tailwind перебивает их без !important.
+   ───────────────────────────────────────────────────────────────── */
+@layer components {
+  .rule {
+    height: 1px;
+    border: 0;
+    background: linear-gradient(
+      to right,
+      transparent,
+      var(--color-divider) 48px,
+      var(--color-divider) calc(100% - 48px),
+      transparent
+    );
+  }
+  .rule-short {
+    height: 1px;
+    border: 0;
+    background: var(--color-divider);
+  }
+  .row-rule {
+    box-shadow: inset 0 -1px 0 var(--color-divider);
+  }
+
+  /* — кнопки: контур, никогда не заливка — */
+  .btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    min-height: 44px;
+    padding: 0 18px;
+    cursor: pointer;
+    text-decoration: none;
+    white-space: nowrap;
+    font-family: var(--font-body);
+    font-weight: 500;
+    font-size: 15px;
+    line-height: 1.2;
+    color: var(--color-text);
+    background: transparent;
+    border: 1px solid transparent;
+    border-radius: 10px;
+  }
+  .btn svg {
+    display: block;
+    flex-shrink: 0;
+  }
+  .btn:disabled {
+    opacity: 0.45;
+    cursor: not-allowed;
+  }
+  .btn-primary {
+    color: var(--color-accent);
+    border-color: var(--color-accent);
+  }
+  .btn-primary:not(:disabled):hover {
+    background: var(--color-tint);
+  }
+  /* Залитая янтарём — одна на экран: главное действие. */
+  .btn-lamp {
+    font-weight: 600;
+    color: var(--on);
+    background: var(--lamp);
+    border-color: var(--lamp);
+  }
+  .btn-lamp:not(:disabled):hover {
+    filter: brightness(1.05);
+  }
+  .btn-secondary {
+    color: var(--color-neutral-500);
+    border-color: var(--color-divider);
+  }
+  .btn-secondary:not(:disabled):hover {
+    color: var(--color-text);
+    background: var(--color-tint);
+  }
+  .btn-ghost {
+    color: var(--color-neutral-500);
+    padding-inline: 12px;
+  }
+  .btn-ghost:not(:disabled):hover {
+    color: var(--color-text);
+    background: var(--color-tint);
+  }
+  .btn-danger {
+    color: var(--danger);
+    border-color: var(--danger);
+  }
+  .btn-danger:not(:disabled):hover {
+    background: var(--color-danger-soft);
+  }
+  .btn-icon {
+    width: 40px;
+    min-height: 40px;
+    height: 40px;
+    padding: 0;
+    border-radius: var(--radius-md);
+  }
+  .btn-block {
+    width: 100%;
+  }
+  .btn-sm {
+    min-height: 36px;
+    padding: 0 12px;
+    font-size: 14px;
+    border-radius: 10px;
+  }
+  .btn-lg {
+    min-height: 54px;
+    padding: 0 26px;
+    font-size: 16px;
+    border-radius: 10px;
+  }
+
+  /* — поля — */
+  .field > label {
+    display: block;
+    font-size: 14.5px;
+    margin-bottom: 8px;
+    color: var(--color-neutral-500);
+  }
+  .input {
+    width: 100%;
+    min-height: 48px;
+    padding: 0 14px;
+    font: inherit;
+    font-size: 16px;
+    color: var(--color-text);
+    caret-color: var(--color-accent);
+    background: transparent;
+    border: 1px solid var(--color-divider);
+    border-radius: var(--radius-lg);
+    transition: border-color 0.15s ease;
+  }
+  .input::placeholder {
+    color: var(--color-neutral-600);
+  }
+  .input:hover {
+    border-color: color-mix(in srgb, var(--color-text) 35%, transparent);
+  }
+  .input:focus-visible {
+    border-color: var(--color-accent);
+    outline-offset: 0;
+  }
+  .input:disabled {
+    opacity: 0.45;
+    cursor: not-allowed;
+  }
+  .input[aria-invalid='true'] {
+    border-color: var(--danger);
+  }
+  textarea.input {
+    min-height: 110px;
+    padding: 12px 14px;
+    line-height: 1.5;
+    resize: vertical;
+  }
+  select.input {
+    appearance: none;
+    padding-right: 34px;
+    background-image:
+      linear-gradient(45deg, transparent 50%, currentColor 50%),
+      linear-gradient(135deg, currentColor 50%, transparent 50%);
+    background-position:
+      calc(100% - 18px) calc(50% + 1px),
+      calc(100% - 13px) calc(50% + 1px);
+    background-size: 5px 5px;
+    background-repeat: no-repeat;
+  }
+  select.input option {
+    background: var(--color-surface);
+    color: var(--color-text);
+  }
+
+  .radio {
+    display: inline-flex;
+    align-items: center;
+    gap: 10px;
+    cursor: pointer;
+    font-size: 15px;
+  }
+  .radio input {
+    position: absolute;
+    opacity: 0;
+    width: 0;
+    height: 0;
+    pointer-events: none;
+  }
+  .radio .dot {
+    width: 18px;
+    height: 18px;
+    flex: none;
+    border-radius: 50%;
+    border: 1.5px solid var(--color-divider);
+    transition:
+      border-color 0.15s ease,
+      background-color 0.15s ease;
+  }
+  .radio:hover .dot {
+    border-color: var(--color-accent);
+  }
+  .radio input:checked + .dot {
+    border-color: var(--color-accent);
+    background: var(--color-accent);
+    box-shadow: inset 0 0 0 4px var(--color-bg);
+  }
+  .radio input:focus-visible + .dot {
+    outline: 2px solid var(--color-accent);
+    outline-offset: 2px;
+  }
+
+  .checkbox {
+    appearance: none;
+    -webkit-appearance: none;
+    flex: none;
+    width: 18px;
+    height: 18px;
+    border-radius: 6px;
+    border: 1.5px solid var(--color-neutral-700);
+    background: transparent;
+    cursor: pointer;
+    display: inline-grid;
+    place-content: center;
+    transition:
+      border-color 0.15s ease,
+      background-color 0.15s ease;
+  }
+  .checkbox::before {
+    content: '';
+    width: 10px;
+    height: 10px;
+    transform: scale(0);
+    transition: transform 0.12s ease;
+    background: var(--color-on-accent);
+    clip-path: polygon(14% 47%, 0 61%, 40% 100%, 100% 22%, 86% 9%, 39% 71%);
+  }
+  .checkbox:hover {
+    border-color: var(--color-accent);
+  }
+  .checkbox:checked {
+    background: var(--color-accent);
+    border-color: var(--color-accent);
+  }
+  .checkbox:checked::before {
+    transform: scale(1);
+  }
+  .checkbox:focus-visible {
+    outline: 2px solid var(--color-accent);
+    outline-offset: 2px;
+  }
+  .checkbox:disabled {
+    opacity: 0.4;
+    cursor: not-allowed;
+  }
+
+  /* Сегменты в v2 — ряд отдельных «таблеток». */
+  .seg {
+    display: inline-flex;
+    flex-wrap: wrap;
+    gap: 7px;
+  }
+  .seg-opt {
+    display: inline-flex;
+    align-items: center;
+    gap: 7px;
+    min-height: 40px;
+    padding: 0 15px;
+    font-size: 14.5px;
+    line-height: 1.2;
+    white-space: nowrap;
+    cursor: pointer;
+    font-family: inherit;
+    color: var(--color-neutral-500);
+    background: transparent;
+    border: 1.5px solid var(--color-divider);
+    border-radius: 99px;
+  }
+  .seg-opt[aria-selected='true'] {
+    color: var(--color-accent);
+    border-color: var(--color-accent);
+    background: var(--color-tint);
+  }
+  .seg-opt[aria-selected='false']:hover {
+    color: var(--color-text);
+    background: var(--color-tint);
+  }
+
+  .card {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    padding: 22px 24px;
+    border-radius: var(--radius-xl);
+    background: var(--color-surface);
+    box-shadow: var(--shadow-sm);
+  }
+  .card-kicker {
+    font-size: 12px;
+    letter-spacing: 0.09em;
+    text-transform: uppercase;
+    color: var(--color-accent);
+  }
+  .card-title {
+    font-family: var(--font-heading);
+    font-weight: 500;
+    font-size: 18px;
+    line-height: 1.25;
+    letter-spacing: -0.01em;
+  }
+  .card-body {
+    margin: 0;
+    font-size: 15px;
+    color: var(--color-neutral-500);
+    flex: 1;
+  }
+  .card-meta {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 13.5px;
+    color: var(--color-neutral-600);
+  }
+  .elev-sm {
+    box-shadow: var(--shadow-sm);
+  }
+  .elev-md {
+    box-shadow: var(--shadow-md);
+  }
+  .elev-lg {
+    box-shadow: var(--shadow-lg);
+  }
+
+  /* Метки — мягкие «таблетки» на тонкой подложке. */
+  .tag {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    min-height: 26px;
+    font-size: 13px;
+    line-height: 1.2;
+    padding: 3px 10px;
+    border-radius: 99px;
+    white-space: nowrap;
+  }
+  .tag-accent {
+    background: var(--color-tint);
+    color: var(--color-accent);
+  }
+  .tag-accent-2 {
+    background: var(--color-warm-soft);
+    color: var(--color-warm);
+  }
+  .tag-neutral {
+    background: var(--color-neutral-800);
+    color: var(--color-neutral-500);
+  }
+  .tag-outline {
+    border: 1px solid var(--color-accent);
+    color: var(--color-accent);
+  }
+
+  /* Подпись раздела: мелкая, разряжённая, капсом. */
+  /* Подпись раздела v3: 14px, без капса (в v3 заглавных подписей нет). */
+  .kicker {
+    margin: 0;
+    font-size: 14px;
+    font-weight: 500;
+    color: var(--muted);
+  }
+
+  /* Скелетон: мерцающая полоса на месте будущих данных. */
+  .skeleton {
+    display: block;
+    border-radius: 7px;
+    background: linear-gradient(
+      90deg,
+      var(--color-skel-base) 25%,
+      var(--color-skel-hi) 37%,
+      var(--color-skel-base) 63%
+    );
+    background-size: 400% 100%;
+    animation: ax-shimmer 1.4s ease-in-out infinite;
+  }
+}
+
+/* ─────────────────────────────  движение  ───────────────────────────── */
+
+@keyframes ax-fade-in {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+/* Вход страницы. Заполнение backwards, не both: иначе на обёртке остаётся transform,
+   и элементы с position:fixed внутри начинают прокручиваться вместе с ней. */
+@keyframes ax-page-in {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+.ax-page-in {
+  animation: ax-page-in 0.38s cubic-bezier(0.2, 0.9, 0.3, 1) backwards;
+}
+
+/* Картинка мерцает, пока грузится; data-ax-ok ставит main.tsx после load/error. */
+@keyframes ax-skel {
+  0% {
+    background-position: -200px 0;
+  }
+  100% {
+    background-position: calc(200px + 100%) 0;
+  }
+}
+img:not([data-ax-ok]) {
+  background-color: var(--color-skel-base);
+  background-image: linear-gradient(90deg, transparent, var(--color-skel-hi), transparent);
+  background-size: 200px 100%;
+  background-repeat: no-repeat;
+  animation: ax-skel 1.3s linear infinite;
+  color: transparent;
+}
+img[data-ax-ok] {
+  animation: ax-fade-in 0.35s ease both;
+}
+/* Чаты: новое сообщение и три точки «печатает…». */
+@keyframes ax-msg-in {
+  from {
+    opacity: 0;
+    transform: translateY(12px) scale(0.96);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+@keyframes ax-dot {
+  0%,
+  60%,
+  100% {
+    transform: translateY(0);
+    opacity: 0.45;
+  }
+  30% {
+    transform: translateY(-4px);
+    opacity: 1;
+  }
+}
+@keyframes ax-shimmer {
+  from {
+    background-position: 200% 0;
+  }
+  to {
+    background-position: -200% 0;
+  }
+}
+@keyframes ax-modal-in {
+  from {
+    opacity: 0;
+    transform: translateY(14px) scale(0.97);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+/* Тост выезжает снизу, оставаясь по центру. */
+@keyframes ax-toast-in {
+  from {
+    opacity: 0;
+    transform: translate(-50%, 14px) scale(0.97);
+  }
+  to {
+    opacity: 1;
+    transform: translate(-50%, 0);
+  }
+}
+@keyframes ax-breathe {
+  0%,
+  100% {
+    transform: scale(1);
+    opacity: 0.85;
+  }
+  50% {
+    transform: scale(1.5);
+    opacity: 0.35;
+  }
+}
+
+/* Золотая волна вокруг круга дыхания. */
+@keyframes ax-gold {
+  0% {
+    transform: scale(0.9);
+    opacity: 0.8;
+  }
+  100% {
+    transform: scale(1.45);
+    opacity: 0;
+  }
+}
+
+/* Мягкое покачивание фигуры в круге дыхания. */
+@keyframes ax-float {
+  0%,
+  100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-8px);
+  }
+}
+
+/* Медленное мерцание точки «живого» статуса. */
+@keyframes pulse-dot {
+  0%,
+  100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.35;
+  }
+}
+.animate-pulse-dot {
+  animation: pulse-dot 2s ease-in-out infinite;
+}
+
+/* Мягкий пульс — приглашение отметить привычку. */
+@keyframes soft-pulse {
+  0%,
+  100% {
+    box-shadow: 0 0 0 0 color-mix(in srgb, var(--color-accent) 35%, transparent);
+  }
+  50% {
+    box-shadow: 0 0 0 6px transparent;
+  }
+}
+.animate-soft-pulse {
+  animation: soft-pulse 1.8s ease-out infinite;
+  border-color: var(--color-accent) !important;
+}
+
+/* Тонкие скроллбары. */
+* {
+  scrollbar-width: thin;
+  scrollbar-color: var(--color-neutral-700) transparent;
+}
+::-webkit-scrollbar {
+  width: 11px;
+  height: 11px;
+}
+::-webkit-scrollbar-thumb {
+  background: var(--color-neutral-700);
+  background-clip: content-box;
+  border: 3px solid transparent;
+  border-radius: 99px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: var(--color-neutral-600);
+  background-clip: content-box;
+}
+::-webkit-scrollbar-track,
+::-webkit-scrollbar-corner {
+  background: transparent;
+}
+
+/* Сцены дыхания: мерцание звёзд и дрейф облаков. */
+@keyframes ax-twinkle {
+  0%,
+  100% {
+    opacity: 0.35;
+  }
+  50% {
+    opacity: 0.9;
+  }
+}
+@keyframes ax-drift-x {
+  0%,
+  100% {
+    transform: translateX(0);
+  }
+  50% {
+    transform: translateX(18px);
+  }
+}
+
+/* Помодоро: мягкое свечение вокруг циферблата и покачивание ростка. */
+@keyframes ax-glow {
+  0%,
+  100% {
+    transform: scale(1);
+    opacity: 0.55;
+  }
+  50% {
+    transform: scale(1.06);
+    opacity: 0.85;
+  }
+}
+@keyframes ax-sway {
+  0%,
+  100% {
+    transform: translateX(-50%) translateY(0) rotate(-2deg);
+  }
+  50% {
+    transform: translateX(-50%) translateY(-4px) rotate(2deg);
+  }
+}
+
+/* ─────────────────────────  v3: озорные поля  ─────────────────────────
+   Наклейка — только за победу, пометка Caveat — прогресс. Анимации
+   задаёт lib/ax.ts (pop, burst, slap); здесь только внешний вид.
+   ───────────────────────────────────────────────────────────────────── */
+@layer components {
+  .ax-sticker {
+    position: absolute;
+    z-index: 3;
+    top: -12px;
+    right: 14px;
+    pointer-events: none;
+    white-space: nowrap;
+    font-family: var(--f-hand);
+    font-weight: 700;
+    font-size: 20px;
+    line-height: 1;
+    color: var(--stk-ink);
+    background: var(--stk-bg);
+    padding: 7px 12px 8px;
+    border-radius: 10px;
+    border: var(--stk-bw) solid var(--stk-line);
+    box-shadow: var(--stk-shadow);
+  }
+  .ax-sticker-lamp {
+    background: var(--lamp);
+  }
+  .ax-hand {
+    font-family: var(--f-hand);
+    font-weight: 600;
+    font-size: 22px;
+    line-height: 1;
+    color: var(--lamp-ink);
+    display: inline-block;
+  }
+  .ax-title {
+    margin: 0;
+    font-family: var(--f-num);
+    font-weight: 600;
+    font-size: 34px;
+    line-height: 1.15;
+    letter-spacing: -0.01em;
+  }
+  .ax-section {
+    margin: 0;
+    font-family: var(--f-num);
+    font-weight: 600;
+    font-size: 20px;
+    letter-spacing: -0.01em;
+  }
+  .ax-num {
+    font-family: var(--f-num);
+    font-weight: 700;
+    font-size: 36px;
+    line-height: 1;
+    font-variant-numeric: tabular-nums;
+  }
+  /* «Создать новое» — первая плитка сетки или первая строка списка. */
+  .ax-new {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    padding: 20px;
+    border-radius: 20px;
+    border: 1.5px dashed var(--n700);
+    background: transparent;
+    cursor: pointer;
+    text-align: left;
+    color: var(--text);
+    font-family: inherit;
+  }
+  .ax-new:hover {
+    border-color: var(--lamp-ink);
+    background: var(--tint);
+  }
+  .ax-new-plus {
+    flex: none;
+    width: 46px;
+    height: 46px;
+    border-radius: 50%;
+    display: grid;
+    place-items: center;
+    background: var(--lamp);
+    color: var(--on);
+  }
+  /* Сегмент-переключатель: подложка tint, выбранный — карточка. */
+  .ax-seg {
+    display: flex;
+    gap: 4px;
+    padding: 4px;
+    border-radius: 14px;
+    background: var(--tint);
+  }
+  .ax-seg > button {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    min-height: 40px;
+    padding: 0 16px;
+    border-radius: 10px;
+    cursor: pointer;
+    font-family: inherit;
+    font-size: 14px;
+    white-space: nowrap;
+    border: none;
+    background: transparent;
+    color: var(--muted);
+  }
+  .ax-seg > button[aria-selected='true'],
+  .ax-seg > button[aria-pressed='true'] {
+    background: var(--surface);
+    color: var(--text);
+    box-shadow: var(--shadow);
+  }
+}
+
+/* Кнопки и пометки поверх рисунка привычки получают матовую подложку. */
+[data-on-art='1'] {
+  background: color-mix(in oklab, var(--surface) 86%, transparent) !important;
+  -webkit-backdrop-filter: blur(6px);
+  backdrop-filter: blur(6px);
+  box-shadow: 0 0 0 1px var(--line);
+  border-radius: 10px;
+  transition:
+    background 0.2s,
+    box-shadow 0.2s;
+}
+button[data-on-art='1'] {
+  color: var(--text) !important;
+}
+button[data-on-art='1']:hover {
+  background: color-mix(in oklab, var(--lamp) 18%, var(--surface)) !important;
+}
+span[data-on-art='1'] {
+  padding: 5px 10px 6px;
+  margin-right: -4px;
+  box-shadow:
+    0 0 0 1px var(--lamp-soft),
+    0 2px 8px rgba(0, 0, 0, 0.12);
+}
+
+/* Кошельки (v3): содержимое выглядывает из-за клапана; при изменении баланса
+   доход падает внутрь, расход вылетает вверх, клапан «глотает». Копии -a/-b
+   чередуются, чтобы одинаковая анимация подряд перезапускалась. */
+@keyframes wpeek-in-a { 0% { transform: translateY(-30px); opacity: 0 } 30% { opacity: 1 } 55% { transform: translateY(9px) } 75% { transform: translateY(-3px) } 100% { transform: none } }
+@keyframes wpeek-in-b { 0% { transform: translateY(-30px); opacity: 0 } 30% { opacity: 1 } 55% { transform: translateY(9px) } 75% { transform: translateY(-3px) } 100% { transform: none } }
+@keyframes wpeek-out-a { 0% { transform: none } 15% { transform: translateY(4px) } 45% { transform: translateY(-34px) rotate(-6deg); opacity: 0 } 60% { transform: translateY(14px); opacity: 0 } 100% { transform: none; opacity: 1 } }
+@keyframes wpeek-out-b { 0% { transform: none } 15% { transform: translateY(4px) } 45% { transform: translateY(-34px) rotate(-6deg); opacity: 0 } 60% { transform: translateY(14px); opacity: 0 } 100% { transform: none; opacity: 1 } }
+@keyframes wflap-a { 0%, 30% { transform: none } 50% { transform: scaleY(1.07) } 68% { transform: scaleY(0.96) } 84%, 100% { transform: none } }
+@keyframes wflap-b { 0%, 30% { transform: none } 50% { transform: scaleY(1.07) } 68% { transform: scaleY(0.96) } 84%, 100% { transform: none } }
+@keyframes wdelta { 0% { transform: translateY(10px) rotate(-5deg); opacity: 0 } 18% { transform: translateY(-4px) rotate(-5deg); opacity: 1 } 70% { opacity: 1 } 100% { transform: translateY(-22px) rotate(-5deg); opacity: 0 } }
+@keyframes ax-grow { from { transform: scaleY(0) } to { transform: scaleY(1) } }
+@media (prefers-reduced-motion: reduce) {
+  [style*='wpeek'], [style*='wflap'], [style*='wdelta'] { animation: none !important; }
+}
+
+/* Фокус: смена фазы — цифры перекатываются сверху; последние 10 секунд кольцо «дышит». */
+@keyframes ax-clock-in {
+  0% { transform: translateY(-60%); opacity: 0 }
+  70% { transform: translateY(8%); opacity: 1 }
+  100% { transform: none; opacity: 1 }
+}
+@keyframes ax-near {
+  0%, 100% { transform: scale(1) }
+  50% { transform: scale(1.035) }
+}
+
+/* Дыхание: новое слово фазы проявляется из лёгкого размытия. */
+@keyframes ax-word-in {
+  from { opacity: 0; transform: translateY(6px); filter: blur(2px) }
+  to { opacity: 1; transform: none; filter: none }
+}
+
+/* Прокрутка без видимой полосы — в чатах, как в мессенджерах. */
+.no-scrollbar {
+  scrollbar-width: none;
+}
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
+}

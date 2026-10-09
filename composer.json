@@ -1,0 +1,54 @@
+{
+    "name": "oniichann/cheap-sql-scheme",
+    "description": "Визуальный редактор схем БД для Laravel: таблицы, колонки и связи на холсте, импорт из SQL-дампа или миграций, экспорт в миграции Laravel и .sql для MySQL, PostgreSQL и SQLite.",
+    "type": "library",
+    "license": "MIT",
+    "authors": [
+        {
+            "name": "Oniichann"
+        }
+    ],
+    "keywords": ["laravel", "sql", "schema", "database", "diagram", "erd", "migrations"],
+    "require": {
+        "php": "^8.2",
+        "ext-zip": "*",
+        "illuminate/support": "^11.0|^12.0|^13.0",
+        "illuminate/database": "^11.0|^12.0|^13.0",
+        "illuminate/http": "^11.0|^12.0|^13.0",
+        "illuminate/routing": "^11.0|^12.0|^13.0",
+        "phpmyadmin/sql-parser": "^5.9|^6.0"
+    },
+    "require-dev": {
+        "orchestra/testbench": "^9.0|^10.0|^11.0",
+        "pestphp/pest": "^3.0|^4.0",
+        "pestphp/pest-plugin-laravel": "^3.0|^4.0"
+    },
+    "autoload": {
+        "psr-4": {
+            "CheapSqlScheme\\": "src/"
+        }
+    },
+    "autoload-dev": {
+        "psr-4": {
+            "CheapSqlScheme\\Tests\\": "tests/"
+        }
+    },
+    "extra": {
+        "laravel": {
+            "providers": [
+                "CheapSqlScheme\\CheapSqlSchemeServiceProvider"
+            ]
+        }
+    },
+    "scripts": {
+        "test": "pest"
+    },
+    "config": {
+        "sort-packages": true,
+        "allow-plugins": {
+            "pestphp/pest-plugin": true
+        }
+    },
+    "minimum-stability": "stable",
+    "prefer-stable": true
+}
