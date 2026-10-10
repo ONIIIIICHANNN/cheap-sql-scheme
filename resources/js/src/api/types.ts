@@ -126,6 +126,8 @@ export interface SchemaChanges {
   pending: string[]
   /** «posts.slug» — новые NOT NULL колонки без значения по умолчанию. */
   required_without_default: string[]
+  /** Схема базы этого проекта (а не чертёж для другого). */
+  is_project: boolean
   can_write: boolean
   committed_at: string | null
 }

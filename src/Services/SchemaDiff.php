@@ -284,8 +284,12 @@ class SchemaDiff
     /** @return array<string, int> */
     public function summary(): array
     {
-        $added = count($this->addedTables) + count($this->addedRelations);
-        $removed = count($this->removedTables) + count($this->removedRelations);
+        // Ключ новой (удалённой) таблицы или колонки — часть этой таблицы или
+        // колонки, а не отдельное изменение: «создал таблицу с FK» — это одно.
+        $added = count($this->addedTables)
+            + count(array_filter($this->addedRelations, fn ($r) => ! $this->fromIsNew($r['from'])));
+        $removed = count($this->removedTables)
+            + count(array_filter($this->removedRelations, fn ($r) => ! $this->fromIsGone($r['from'])));
         $changed = count($this->changedRelations);
         foreach ($this->alteredTables as $t) {
             $added += count($t['added']);
@@ -298,6 +302,18 @@ class SchemaDiff
         }
 
         return ['added' => $added, 'removed' => $removed, 'changed' => $changed];
+    }
+
+    /** Колонка-ссылка появилась в этом коммите (сама или вместе с таблицей). */
+    private function fromIsNew(string $columnUid): bool
+    {
+        return ! isset($this->baseColumns[$columnUid]);
+    }
+
+    /** Колонка-ссылка исчезает в этом коммите (сама или вместе с таблицей). */
+    private function fromIsGone(string $columnUid): bool
+    {
+        return ! isset($this->currentColumns[$columnUid]);
     }
 
     /** @return array<string, mixed> */

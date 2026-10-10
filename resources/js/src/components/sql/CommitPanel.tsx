@@ -7,6 +7,7 @@ import {
   FileCode,
   FloppyDisk,
   GitCommit,
+  Info,
   Table as TableIcon,
   Warning,
 } from '@phosphor-icons/react'
@@ -111,22 +112,24 @@ export function CommitPanel({ schemaId, footer: footerEl, beforeLoad, onClose, o
           files: plural(data.migrations.length, ['file', 'files'], ['файл', 'файла', 'файлов']),
         })}
       </span>
-      <Button
-        variant="secondary"
-        onClick={() => void commit(false)}
-        disabled={busy !== null}
-        loading={busy === 'download'}
-        title={t('commitDownloadHint')}
-      >
-        <DownloadSimple size={14} /> {t('commitDownload')}
-      </Button>
-      {data.can_write && (
+      {/* Схема базы проекта — сразу в проект. Скачивание — только когда писать
+          сюда нельзя: схема другого проекта или запись выключена. */}
+      {data.can_write ? (
         <Button
           onClick={() => void commit(true)}
           disabled={busy !== null}
           loading={busy === 'write'}
         >
           <FloppyDisk size={14} /> {t('commitWrite')}
+        </Button>
+      ) : (
+        <Button
+          onClick={() => void commit(false)}
+          disabled={busy !== null}
+          loading={busy === 'download'}
+          title={t('commitDownloadHint')}
+        >
+          <DownloadSimple size={14} /> {t('commitDownload')}
         </Button>
       )}
     </>
@@ -159,6 +162,13 @@ export function CommitPanel({ schemaId, footer: footerEl, beforeLoad, onClose, o
         <p className="text-[14px] text-muted">{t('changesLoading')}</p>
       ) : (
         <div className="flex flex-col gap-3.5">
+          {!data.empty && !data.can_write && (
+            <div className="flex gap-2.5 rounded-xl border border-line px-3.5 py-3 text-[13px] leading-normal text-muted">
+              <Info size={18} className="mt-px shrink-0" />
+              <p className="m-0">{data.is_project ? t('writeDisabledNote') : t('otherProjectNote')}</p>
+            </div>
+          )}
+
           {data.pending.length > 0 && (
             <div
               role="alert"

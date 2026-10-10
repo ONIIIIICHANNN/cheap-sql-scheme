@@ -181,7 +181,11 @@ const en = {
   pendingTitle: 'Migrations not run yet: {n}',
   pendingHint: 'Run php artisan migrate so the database catches up with the code.',
   commitDownload: 'Commit & download',
-  commitDownloadHint: 'Download the migration file and mark these changes as committed',
+  commitDownloadHint: 'Download the migrations and mark these changes as committed',
+  otherProjectNote:
+    'This schema is not this project’s database, so its migrations are not written here — download them and put them into database/migrations of the project they are for.',
+  writeDisabledNote:
+    'Writing into the project is turned off outside the local environment. Download the migrations and add them to the project yourself, or set CHEAP_SQL_SCHEME_SAVE_MIGRATIONS=true.',
   commitWrite: 'Commit to project',
   committedTitle: 'Committed',
   committedWritten: 'Saved to {path}. Apply them with:',
@@ -376,7 +380,11 @@ const ru: Record<MessageKey, string> = {
   pendingTitle: 'Не выполнено миграций: {n}',
   pendingHint: 'Выполните php artisan migrate, чтобы база догнала код.',
   commitDownload: 'Коммит и скачать',
-  commitDownloadHint: 'Скачать файл миграции и отметить эти изменения как закоммиченные',
+  commitDownloadHint: 'Скачать миграции и отметить эти изменения как закоммиченные',
+  otherProjectNote:
+    'Это не схема базы этого проекта, поэтому её миграции сюда не пишутся — скачайте их и положите в database/migrations того проекта, для которого они.',
+  writeDisabledNote:
+    'Запись в проект выключена вне local-окружения. Скачайте миграции и добавьте их в проект сами или включите CHEAP_SQL_SCHEME_SAVE_MIGRATIONS=true.',
   commitWrite: 'Коммит в проект',
   committedTitle: 'Готово',
   committedWritten: 'Сохранено в {path}. Примените их:',

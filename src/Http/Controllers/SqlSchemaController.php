@@ -57,9 +57,11 @@ class SqlSchemaController extends Controller
             'empty' => $diff->isEmpty(),
             // По файлу на таблицу, в порядке выполнения.
             'migrations' => $diff->isEmpty() ? [] : $generator->files($diff),
-            'pending' => $pending->list(),
+            // Миграции этого проекта касаются только схемы его базы.
+            'pending' => $sqlSchema->isProjectSchema() ? $pending->list() : [],
             'required_without_default' => $diff->requiredWithoutDefault(),
-            'can_write' => self::canSaveMigrations(),
+            'is_project' => $sqlSchema->isProjectSchema(),
+            'can_write' => self::canWriteFor($sqlSchema),
             'committed_at' => $sqlSchema->committed_at,
         ]);
     }
@@ -78,6 +80,8 @@ class SqlSchemaController extends Controller
         $this->authorizeAccess($request, $sqlSchema);
         $request->validate(['write' => 'boolean']);
         $write = $request->boolean('write');
+        // Схема другого проекта не пишет миграции в этот — иначе migrate создал бы тут чужие таблицы.
+        abort_if($write && ! $sqlSchema->isProjectSchema(), 422, __('cheap-sql-scheme::messages.write_project_only'));
         abort_if($write && ! self::canSaveMigrations(), 403, __('cheap-sql-scheme::messages.save_disabled'));
 
         $sqlSchema->load(['tables.columns', 'relations']);
@@ -412,6 +416,12 @@ class SqlSchemaController extends Controller
      * Запись в проект — только где это безопасно: по умолчанию в local,
      * иначе как задано в конфиге save_migrations.
      */
+    /** Можно ли записать коммит этой схемы в проект: только схему его базы и только где разрешено. */
+    public static function canWriteFor(SqlSchema $schema): bool
+    {
+        return $schema->isProjectSchema() && self::canSaveMigrations();
+    }
+
     public static function canSaveMigrations(): bool
     {
         return (bool) (config('cheap-sql-scheme.save_migrations') ?? app()->environment('local'));

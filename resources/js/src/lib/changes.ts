@@ -79,6 +79,8 @@ export function changeMarks(diagram: Diagram, baseline: SqlBaseline | null | und
   count += baseline.tables.filter((t) => !currentUids.has(t.uid)).length
 
   // Внешние ключи: новый, снятый или с другой целью — пометка на колонке-ссылке.
+  // Ключ новой (удаляемой) колонки или таблицы — часть её, отдельно не считаем.
+  const baseColumns = new Set(baseline.tables.flatMap((t) => t.columns.map((c) => c.uid)))
   const baseRel = new Map(baseline.relations.map((r) => [r.from, r]))
   const curRel = new Map(diagram.relations.map((r) => [r.from, r]))
   const relChanged = (from: string) => {
@@ -96,13 +98,13 @@ export function changeMarks(diagram: Diagram, baseline: SqlBaseline | null | und
       action(b.on_delete) !== action(r.on_delete) ||
       action(b.on_update) !== action(r.on_update)
     ) {
-      count++
+      if (baseColumns.has(from)) count++
       relChanged(from)
     }
   }
   for (const from of baseRel.keys()) {
     if (!curRel.has(from)) {
-      count++
+      if (columnTable.has(from)) count++
       relChanged(from)
     }
   }
