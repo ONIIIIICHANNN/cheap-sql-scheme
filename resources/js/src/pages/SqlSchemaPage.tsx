@@ -13,12 +13,11 @@ import { useCallback, useEffect, useMemo, useState } from 'react'
 import type { SchemaDrift } from '../api/types'
 import { DriftBanner } from '../components/sql/DriftBanner'
 import { sqlApi } from '../api/sql'
-import { CommitModal } from '../components/sql/CommitModal'
+import { MigrationsModal } from '../components/sql/MigrationsModal'
 import { useToast } from '../components/ui/Toast'
 import { changeMarks } from '../lib/changes'
 import { Link, useParams } from 'react-router-dom'
 import { EditorAction, EditorHeader, EditorIcon } from '../components/layout/EditorHeader'
-import { ExportModal } from '../components/sql/ExportModal'
 import { NewTableModal } from '../components/sql/NewTableModal'
 import { SchemaSettingsModal } from '../components/sql/SchemaSettingsModal'
 import { SchemaSidebar } from '../components/sql/SchemaSidebar'
@@ -66,7 +65,7 @@ export function SqlSchemaPage() {
     () => (diagram ? changeMarks(diagram, schema?.baseline) : null),
     [diagram, schema?.baseline],
   )
-  const [commitOpen, setCommitOpen] = useState(false)
+  const [migrationsOpen, setMigrationsOpen] = useState(false)
   const [pulling, setPulling] = useState(false)
   const [drift, setDrift] = useState<SchemaDrift | null>(null)
 
@@ -109,7 +108,6 @@ export function SqlSchemaPage() {
 
   const [selectedTable, setSelectedTable] = useState<string | null>(null)
   const [selectedRelation, setSelectedRelation] = useState<string | null>(null)
-  const [exportOpen, setExportOpen] = useState(false)
   const [settingsOpen, setSettingsOpen] = useState(false)
   const [newTableOpen, setNewTableOpen] = useState(false)
   const [zoneMode, setZoneMode] = useState(false)
@@ -209,14 +207,13 @@ export function SqlSchemaPage() {
         )}
         <EditorAction
           icon={<GitCommit size={18} />}
-          label={marks?.count ? `${t('changesAction')} · ${marks.count}` : t('changesAction')}
+          label={
+            marks?.count && schema.baseline
+              ? `${t('migrationsAction')} · ${marks.count}`
+              : t('migrationsAction')
+          }
           pressed={Boolean(marks?.count && schema.baseline)}
-          onClick={() => setCommitOpen(true)}
-        />
-        <EditorAction
-          icon={EditorIcon.export}
-          label={t('exportAction')}
-          onClick={() => setExportOpen(true)}
+          onClick={() => setMigrationsOpen(true)}
         />
         <EditorAction
           icon={EditorIcon.gear}
@@ -255,7 +252,7 @@ export function SqlSchemaPage() {
             onSelectTable={setSelectedTable}
             onAddTable={() => setNewTableOpen(true)}
             onRemoveTable={removeTable}
-            onExport={() => setExportOpen(true)}
+            onExport={() => setMigrationsOpen(true)}
           />
         )}
 
@@ -412,13 +409,12 @@ export function SqlSchemaPage() {
         </div>
       </div>
 
-      <ExportModal open={exportOpen} schemaId={schemaId} onClose={() => setExportOpen(false)} />
-
-      <CommitModal
-        open={commitOpen}
+      <MigrationsModal
+        open={migrationsOpen}
         schemaId={schemaId}
+        changesCount={schema.baseline ? (marks?.count ?? 0) : 0}
         beforeLoad={saveNow}
-        onClose={() => setCommitOpen(false)}
+        onClose={() => setMigrationsOpen(false)}
         onCommitted={() => {
           void reload()
           checkDrift()

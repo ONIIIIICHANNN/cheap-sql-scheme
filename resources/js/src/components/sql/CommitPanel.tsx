@@ -1,25 +1,29 @@
 import {
   ArrowRight,
+  CaretDown,
+  CaretRight,
   CheckCircle,
   DownloadSimple,
+  FileCode,
   FloppyDisk,
   GitCommit,
   Table as TableIcon,
   Warning,
 } from '@phosphor-icons/react'
 import { useEffect, useState } from 'react'
+import { createPortal } from 'react-dom'
 import { ApiError } from '../../api/client'
 import { sqlApi } from '../../api/sql'
 import type { ChangeStatus, SchemaChanges } from '../../api/types'
 import { cn } from '../../lib/cn'
 import { relativeDay } from '../../lib/date'
-import { t } from '../../lib/i18n'
+import { plural, t } from '../../lib/i18n'
 import { Button } from '../ui/Button'
-import { Modal } from '../ui/Modal'
 
-interface CommitModalProps {
-  open: boolean
+interface CommitPanelProps {
   schemaId: number
+  /** Куда рисовать кнопки — подвал общего окна (см. MigrationsModal). */
+  footer: HTMLElement | null
   /** Дождаться сохранения правок — иначе сервер сравнит не то. */
   beforeLoad: () => Promise<void>
   onClose: () => void
@@ -37,8 +41,8 @@ const STATUS: Record<ChangeStatus, { sign: string; color: string; label: () => s
   renamed: { sign: '→', color: '#7aa7d9', label: () => t('statusRenamed') },
 }
 
-function saveBlob(content: string, filename: string) {
-  const url = URL.createObjectURL(new Blob([content], { type: 'text/plain' }))
+function saveBlob(blob: Blob, filename: string) {
+  const url = URL.createObjectURL(blob)
   const link = document.createElement('a')
   link.href = url
   link.download = filename
@@ -47,21 +51,17 @@ function saveBlob(content: string, filename: string) {
 }
 
 /**
- * Окно коммита: что изменилось с прошлого раза (зелёным, красным, жёлтым,
- * синим), миграция только с этими изменениями и запись её в проект.
+ * Коммит: что изменилось с прошлого раза (зелёным, красным, жёлтым, синим),
+ * миграция только с этими изменениями и запись её в проект. Это единственный
+ * путь миграций в проект — у новой схемы «изменения» и есть вся схема.
  */
-export function CommitModal(props: CommitModalProps) {
-  // Каждое открытие — заново: свежие изменения и пустое состояние.
-  return props.open ? <CommitDialog {...props} /> : null
-}
-
-function CommitDialog({ open, schemaId, beforeLoad, onClose, onCommitted }: CommitModalProps) {
+export function CommitPanel({ schemaId, footer: footerEl, beforeLoad, onClose, onCommitted }: CommitPanelProps) {
   const [data, setData] = useState<SchemaChanges | null>(null)
   const [error, setError] = useState<string | null>(null)
   const [tab, setTab] = useState<Tab>('changes')
-  const [name, setName] = useState('')
+  const [expanded, setExpanded] = useState<string | null>(null)
   const [busy, setBusy] = useState<'write' | 'download' | null>(null)
-  const [done, setDone] = useState<{ filename: string; path: string | null } | null>(null)
+  const [done, setDone] = useState<{ files: string[]; path: string | null } | null>(null)
 
   useEffect(() => {
     let active = true
@@ -70,7 +70,7 @@ function CommitDialog({ open, schemaId, beforeLoad, onClose, onCommitted }: Comm
       .then((r) => {
         if (!active) return
         setData(r)
-        setName(r.name)
+        setExpanded(r.migrations[0]?.name ?? null)
       })
       .catch((err) => active && setError(err instanceof ApiError ? err.message : t('changesFailed')))
     return () => {
@@ -82,9 +82,17 @@ function CommitDialog({ open, schemaId, beforeLoad, onClose, onCommitted }: Comm
     setBusy(write ? 'write' : 'download')
     setError(null)
     try {
-      const r = await sqlApi.commit(schemaId, { name, write })
-      if (!write) saveBlob(r.content, r.filename)
-      setDone({ filename: r.filename, path: r.path })
+      const r = await sqlApi.commit(schemaId, { write })
+      if (!write) {
+        if (r.zip) {
+          const bytes = Uint8Array.from(atob(r.zip), (c) => c.charCodeAt(0))
+          saveBlob(new Blob([bytes], { type: 'application/zip' }), 'migrations.zip')
+        } else {
+          const file = r.files[0]
+          saveBlob(new Blob([file.content], { type: 'text/plain' }), file.filename)
+        }
+      }
+      setDone({ files: r.files.map((f) => f.filename), path: r.path })
       onCommitted()
     } catch (err) {
       setError(err instanceof ApiError ? err.message : t('commitFailed'))
@@ -93,25 +101,20 @@ function CommitDialog({ open, schemaId, beforeLoad, onClose, onCommitted }: Comm
     }
   }
 
-  const validName = /^[a-z0-9_]+$/.test(name)
-
   const footer = done ? (
     <Button onClick={onClose}>{t('close')}</Button>
   ) : data && !data.empty ? (
     <>
-      <label className="mr-auto flex min-w-[260px] flex-1 items-center gap-2 text-[13px] text-muted">
-        <span className="shrink-0">{t('migrationName')}</span>
-        <input
-          value={name}
-          onChange={(e) => setName(e.target.value.toLowerCase().replace(/[^a-z0-9_]/g, '_'))}
-          className={cn('input h-9 min-w-0 flex-1 font-mono text-[12.5px]', !validName && 'border-danger')}
-          aria-label={t('migrationName')}
-        />
-      </label>
+      <span className="mr-auto self-center text-[13px] text-muted">
+        {t('migrationFilesCount', {
+          count: data.migrations.length,
+          files: plural(data.migrations.length, ['file', 'files'], ['файл', 'файла', 'файлов']),
+        })}
+      </span>
       <Button
         variant="secondary"
         onClick={() => void commit(false)}
-        disabled={!validName || busy !== null}
+        disabled={busy !== null}
         loading={busy === 'download'}
         title={t('commitDownloadHint')}
       >
@@ -120,7 +123,7 @@ function CommitDialog({ open, schemaId, beforeLoad, onClose, onCommitted }: Comm
       {data.can_write && (
         <Button
           onClick={() => void commit(true)}
-          disabled={!validName || busy !== null}
+          disabled={busy !== null}
           loading={busy === 'write'}
         >
           <FloppyDisk size={14} /> {t('commitWrite')}
@@ -134,15 +137,19 @@ function CommitDialog({ open, schemaId, beforeLoad, onClose, onCommitted }: Comm
   )
 
   return (
-    <Modal open={open} title={t('commitTitle')} onClose={onClose} size="2xl" footer={footer}>
+    <>
+      {footerEl && createPortal(footer, footerEl)}
       {done ? (
         <div className="flex flex-col items-center gap-3 px-4 py-8 text-center">
           <CheckCircle size={44} weight="fill" style={{ color: 'var(--done)' }} />
           <p className="m-0 text-[17px] font-semibold">{t('committedTitle')}</p>
+          <ul className="m-0 flex list-none flex-col gap-1 p-0 font-mono text-[12.5px]">
+            {done.files.map((f) => (
+              <li key={f}>{f}</li>
+            ))}
+          </ul>
           <p className="m-0 max-w-[60ch] text-[14px] leading-normal text-muted">
-            {done.path
-              ? t('committedWritten', { file: done.filename, path: done.path })
-              : t('committedDownloaded', { file: done.filename })}
+            {done.path ? t('committedWritten', { path: done.path }) : t('committedDownloaded')}
           </p>
           <code className="rounded-lg bg-bg px-3 py-2 font-mono text-[13px]">php artisan migrate</code>
         </div>
@@ -226,9 +233,33 @@ function CommitDialog({ open, schemaId, beforeLoad, onClose, onCommitted }: Comm
                   ))}
                 </div>
               ) : (
-                <pre className="m-0 max-h-[56vh] overflow-auto rounded-lg bg-bg p-4 font-mono text-[12px] leading-[1.6] text-fg">
-                  {data.migration}
-                </pre>
+                <div className="flex max-h-[56vh] flex-col gap-1.5 overflow-y-auto pr-1">
+                  <p className="m-0 text-[13px] leading-normal text-muted">{t('migrationFilesHint')}</p>
+                  {data.migrations.map((file, i) => {
+                    const open = expanded === file.name
+                    return (
+                      <div key={file.name} className="rounded-lg border border-line">
+                        <button
+                          onClick={() => setExpanded(open ? null : file.name)}
+                          className={cn(
+                            'flex w-full items-center gap-2 px-3 py-2 text-left font-mono text-[12.5px] hover:bg-tint',
+                            open && 'bg-tint',
+                          )}
+                        >
+                          {open ? <CaretDown size={13} /> : <CaretRight size={13} />}
+                          <span className="w-5 shrink-0 text-right text-muted tabular-nums">{i + 1}.</span>
+                          <FileCode size={15} className="shrink-0 text-lamp-ink" />
+                          <span className="min-w-0 flex-1 truncate">{file.name}.php</span>
+                        </button>
+                        {open && (
+                          <pre className="m-0 max-h-[40vh] overflow-auto border-t border-line bg-bg p-4 font-mono text-[12px] leading-[1.6] text-fg">
+                            {file.content}
+                          </pre>
+                        )}
+                      </div>
+                    )
+                  })}
+                </div>
               )}
 
               {data.required_without_default.length > 0 && (
@@ -247,7 +278,7 @@ function CommitDialog({ open, schemaId, beforeLoad, onClose, onCommitted }: Comm
           )}
         </div>
       )}
-    </Modal>
+    </>
   )
 }
 

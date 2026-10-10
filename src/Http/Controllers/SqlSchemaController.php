@@ -50,14 +50,13 @@ class SqlSchemaController extends Controller
         $this->authorizeAccess($request, $sqlSchema);
 
         $diff = SchemaDiff::compare($sqlSchema->baseline, Snapshot::fromSchema($sqlSchema));
-        $name = $generator->suggestName($diff);
 
         return $this->success([
             'changes' => $diff->present(),
             'summary' => $diff->summary(),
             'empty' => $diff->isEmpty(),
-            'name' => $name,
-            'migration' => $diff->isEmpty() ? null : $generator->generate($diff),
+            // По файлу на таблицу, в порядке выполнения.
+            'migrations' => $diff->isEmpty() ? [] : $generator->files($diff),
             'pending' => $pending->list(),
             'required_without_default' => $diff->requiredWithoutDefault(),
             'can_write' => self::canSaveMigrations(),
@@ -74,12 +73,10 @@ class SqlSchemaController extends Controller
         SqlSchema $sqlSchema,
         MigrationGenerator $generator,
         MigrationWriter $writer,
+        SqlSchemaExporter $exporter,
     ) {
         $this->authorizeAccess($request, $sqlSchema);
-        $validated = $request->validate([
-            'name' => ['nullable', 'string', 'max:120', 'regex:/^[a-z0-9_]+$/'],
-            'write' => 'boolean',
-        ]);
+        $request->validate(['write' => 'boolean']);
         $write = $request->boolean('write');
         abort_if($write && ! self::canSaveMigrations(), 403, __('cheap-sql-scheme::messages.save_disabled'));
 
@@ -95,10 +92,18 @@ class SqlSchemaController extends Controller
             abort(422, __('cheap-sql-scheme::messages.unsafe_name', ['name' => $e->getMessage()]));
         }
 
-        $content = $generator->generate($diff);
-        $filename = now()->format('Y_m_d_His').'_'.($validated['name'] ?? $generator->suggestName($diff)).'.php';
+        // По секунде на файл: порядок миграций Laravel = порядок плана.
+        $files = [];
+        foreach ($generator->files($diff) as $i => $file) {
+            $files[] = [
+                'filename' => now()->addSeconds($i)->format('Y_m_d_His').'_'.$file['name'].'.php',
+                'content' => $file['content'],
+            ];
+        }
         if ($write) {
-            $writer->put($filename, $content);
+            foreach ($files as $file) {
+                $writer->put($file['filename'], $file['content']);
+            }
         }
 
         $sqlSchema->update([
@@ -107,10 +112,11 @@ class SqlSchemaController extends Controller
         ]);
 
         return $this->success([
-            'filename' => $filename,
-            'content' => $content,
+            'files' => $files,
             'written' => $write,
             'path' => $write ? $this->relativePath($writer->directory()) : null,
+            // Скачать несколько файлов разом браузер не даст — отдаём архивом.
+            'zip' => ! $write && count($files) > 1 ? base64_encode($exporter->zipFiles($files)) : null,
         ]);
     }
 
@@ -399,40 +405,6 @@ class SqlSchemaController extends Controller
         return response($exporter->toZip($sqlSchema), 200, [
             'Content-Type' => 'application/zip',
             'Content-Disposition' => 'attachment; filename="'.Str::snake($sqlSchema->name).'_migrations.zip"',
-        ]);
-    }
-
-    /**
-     * POST /schemas/{id}/save-migrations — записать миграции прямо в проект.
-     * Если у таблиц уже есть миграции и overwrite не передан — 409 со списком.
-     */
-    public function saveMigrations(Request $request, SqlSchema $sqlSchema, MigrationWriter $writer)
-    {
-        $this->authorizeAccess($request, $sqlSchema);
-        abort_unless(self::canSaveMigrations(), 403, __('cheap-sql-scheme::messages.save_disabled'));
-
-        $sqlSchema->load(['tables.columns', 'relations']);
-
-        try {
-            $writer->assertSafe($sqlSchema);
-        } catch (InvalidArgumentException $e) {
-            abort(422, __('cheap-sql-scheme::messages.unsafe_name', ['name' => $e->getMessage()]));
-        }
-
-        $conflicts = $writer->conflicts($sqlSchema);
-        if ($conflicts !== [] && ! $request->boolean('overwrite')) {
-            return response()->json([
-                'message' => __('cheap-sql-scheme::messages.migrations_exist'),
-                'errors' => ['conflicts' => array_values($conflicts)],
-                'success' => false,
-            ], 409);
-        }
-
-        $files = $writer->write($sqlSchema);
-
-        return $this->success([
-            'path' => $this->relativePath($writer->directory()),
-            'files' => $files,
         ]);
     }
 

@@ -58,6 +58,18 @@ function diagramOf(array $schema): array
     ];
 }
 
+/** Выполнить закоммиченные миграции, как это сделает php artisan migrate. */
+function migrateCommit($test): void
+{
+    $test->artisan('migrate', ['--path' => $test->dir, '--realpath' => true])->assertSuccessful();
+}
+
+/** Откатить последний коммит — все его файлы одной партией. */
+function rollbackCommit($test): void
+{
+    $test->artisan('migrate:rollback', ['--path' => $test->dir, '--realpath' => true])->assertSuccessful();
+}
+
 function &tableIn(array &$diagram, string $name): array
 {
     foreach ($diagram['tables'] as &$table) {
@@ -153,25 +165,33 @@ test('a commit generates a migration with only the changes, and it really runs b
         ->and($postItems['column:views']['after'])->toBe('bigInteger · nullable · default 0')
         ->and($postItems['column:body']['status'])->toBe('removed')
         ->and($postItems['column:slug']['status'])->toBe('added')
-        ->and($postItems['foreign:author_id']['status'])->toBe('changed')
-        ->and($changes['migration'])
+        ->and($postItems['foreign:author_id']['status'])->toBe('changed');
+
+    // По файлу на таблицу, в порядке выполнения: posts ставит ключ на
+    // переименованную writers, поэтому writers идёт раньше posts.
+    $files = collect($changes['migrations'])->keyBy('name');
+    expect($files->keys()->all())->toBe(['create_comments_table', 'rename_authors_to_writers_table', 'update_posts_table'])
+        ->and($files['create_comments_table']['content'])
+        ->toContain("Schema::create('comments'")
+        ->toContain("\$table->foreign('post_id')->references('id')->on('posts')->cascadeOnDelete()")
+        ->and($files['rename_authors_to_writers_table']['content'])->toContain("Schema::rename('authors', 'writers')")
+        ->and($files['update_posts_table']['content'])
         ->toContain("\$table->renameColumn('title', 'headline')")
         ->toContain("\$table->bigInteger('views')->nullable()->default(0)->change()")
         ->toContain("\$table->dropColumn(['body'])")
         ->toContain("\$table->string('slug')->nullable()->unique()")
-        ->toContain("Schema::rename('authors', 'writers')")
-        ->toContain("Schema::create('comments'")
+        ->toContain("->on('writers')->restrictOnDelete()")
         ->not->toContain("Schema::create('posts'");
 
-    // Коммит: файл в проекте, базовый снимок сдвинулся.
-    $commit = $this->postJson(SCHEMAS."/{$schema->id}/commit", ['write' => true, 'name' => 'blog_changes'])->assertOk()->json('data');
-    expect($commit['filename'])->toEndWith('_blog_changes.php')
-        ->and(File::exists($this->dir.'/'.$commit['filename']))->toBeTrue();
+    // Коммит: файлы в проекте, базовый снимок сдвинулся.
+    $commit = $this->postJson(SCHEMAS."/{$schema->id}/commit", ['write' => true])->assertOk()->json('data');
+    expect(collect($commit['files'])->map(fn ($f) => substr($f['filename'], 18))->all())
+        ->toBe(['create_comments_table.php', 'rename_authors_to_writers_table.php', 'update_posts_table.php'])
+        ->and(collect($commit['files'])->every(fn ($f) => File::exists($this->dir.'/'.$f['filename'])))->toBeTrue();
     $this->getJson(SCHEMAS."/{$schema->id}/changes")->assertJsonPath('data.empty', true);
 
-    // Миграция действительно выполняется на базе…
-    $migration = require $this->dir.'/'.$commit['filename'];
-    $migration->up();
+    // Миграции действительно выполняются на базе — обычным migrate…
+    migrateCommit($this);
 
     expect(Schema::hasTable('writers'))->toBeTrue()
         ->and(Schema::hasTable('authors'))->toBeFalse()
@@ -183,8 +203,8 @@ test('a commit generates a migration with only the changes, and it really runs b
         ->and(collect(Schema::getIndexes('posts'))->contains(fn ($i) => $i['unique'] && $i['columns'] === ['slug']))->toBeTrue()
         ->and(Schema::getColumnType('posts', 'views'))->toBe('integer'); // в SQLite bigint — это integer
 
-    // …и откатывается обратно.
-    $migration->down();
+    // …и откатываются обратно.
+    rollbackCommit($this);
 
     expect(Schema::hasTable('authors'))->toBeTrue()
         ->and(Schema::hasTable('writers'))->toBeFalse()
@@ -209,15 +229,14 @@ test('a name freed by a rename or a drop can be reused in the same commit', func
     unset($posts);
 
     $this->putJson(SCHEMAS."/{$schema->id}/diagram", $diagram)->assertOk();
-    $commit = $this->postJson(SCHEMAS."/{$schema->id}/commit", ['write' => true])->assertOk()->json('data');
-    $migration = require $this->dir.'/'.$commit['filename'];
+    $this->postJson(SCHEMAS."/{$schema->id}/commit", ['write' => true])->assertOk();
 
-    $migration->up();
+    migrateCommit($this);
     expect(Schema::getColumnListing('posts'))->toContain('headline', 'title', 'body')
         ->and(Schema::getColumnListing('posts'))->not->toContain('views')
         ->and(Schema::getColumnType('posts', 'body'))->toBe('integer');
 
-    $migration->down();
+    rollbackCommit($this);
     expect(Schema::getColumnListing('posts'))->toContain('title', 'body', 'views')
         ->and(Schema::getColumnListing('posts'))->not->toContain('headline')
         ->and(Schema::getColumnType('posts', 'body'))->toBe('text');
@@ -331,7 +350,7 @@ test('a fresh schema commits as create migrations for everything', function () {
     ])->assertOk();
 
     $changes = $this->getJson(SCHEMAS."/{$schema->id}/changes")->json('data');
-    expect($changes['name'])->toBe('create_products_table')
+    expect($changes['migrations'][0]['name'])->toBe('create_products_table')
         ->and($changes['changes'][0]['status'])->toBe('added');
 
     $this->postJson(SCHEMAS."/{$schema->id}/commit")->assertOk();

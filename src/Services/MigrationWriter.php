@@ -7,70 +7,14 @@ use Illuminate\Support\Facades\File;
 use InvalidArgumentException;
 
 /**
- * Записывает миграции схемы (по файлу на таблицу) прямо в папку миграций
- * приложения. Имена берутся из экспорта, но метка времени — текущая, чтобы
- * новые файлы шли после уже существующих миграций проекта.
+ * Кладёт закоммиченную миграцию в папку миграций приложения и проверяет, что
+ * в её код не попадёт ничего, кроме обычных имён.
  */
 class MigrationWriter
 {
-    public function __construct(private SqlSchemaExporter $exporter) {}
-
     public function directory(): string
     {
         return config('cheap-sql-scheme.migrations_path') ?? database_path('migrations');
-    }
-
-    /**
-     * Таблицы, для которых в проекте уже есть миграция с тем же именем
-     * (create_users_table.php и т. п.): имя таблицы-файла → существующий файл.
-     *
-     * @return array<string, string>
-     */
-    public function conflicts(SqlSchema $schema): array
-    {
-        $conflicts = [];
-        foreach ($this->exporter->toMigrationFiles($schema) as $file) {
-            $existing = $this->existing($this->suffix($file['filename']));
-            if ($existing !== null) {
-                $conflicts[$this->suffix($file['filename'])] = basename($existing);
-            }
-        }
-
-        return $conflicts;
-    }
-
-    /**
-     * Записать миграции. Существующие миграции тех же таблиц удаляются и
-     * пишутся заново — так весь набор схемы остаётся в порядке зависимостей.
-     *
-     * @return array<int, string> имена записанных файлов
-     */
-    public function write(SqlSchema $schema): array
-    {
-        $this->assertSafe($schema);
-
-        $directory = $this->directory();
-        File::ensureDirectoryExists($directory);
-
-        $written = [];
-        $now = now();
-        foreach ($this->exporter->toMigrationFiles($schema) as $i => $file) {
-            $suffix = $this->suffix($file['filename']);
-            if (! preg_match('/^[A-Za-z0-9_]+\.php$/', $suffix)) {
-                throw new InvalidArgumentException($file['filename']);
-            }
-
-            if ($existing = $this->existing($suffix)) {
-                File::delete($existing);
-            }
-
-            // По секунде на файл: порядок миграций = порядок зависимостей.
-            $filename = $now->copy()->addSeconds($i)->format('Y_m_d_His').'_'.$suffix;
-            File::put($directory.DIRECTORY_SEPARATOR.$filename, $file['content']);
-            $written[] = $filename;
-        }
-
-        return $written;
     }
 
     /** Записать один готовый файл миграции. */
@@ -131,18 +75,5 @@ class MigrationWriter
                 throw new InvalidArgumentException((string) $relation['name']);
             }
         }
-    }
-
-    /** «2026_10_09_000001_create_users_table.php» → «create_users_table.php». */
-    private function suffix(string $filename): string
-    {
-        return (string) preg_replace('/^\d{4}_\d{2}_\d{2}_\d{6}_/', '', $filename);
-    }
-
-    private function existing(string $suffix): ?string
-    {
-        $matches = glob($this->directory().DIRECTORY_SEPARATOR.'*_'.$suffix) ?: [];
-
-        return $matches[0] ?? null;
     }
 }

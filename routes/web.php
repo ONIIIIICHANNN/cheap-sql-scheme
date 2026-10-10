@@ -26,7 +26,6 @@ Route::prefix($path)
             Route::put('/{sqlSchema}/diagram', [SqlSchemaController::class, 'saveDiagram'])->whereNumber('sqlSchema')->name('diagram');
             Route::get('/{sqlSchema}/export', [SqlSchemaController::class, 'export'])->whereNumber('sqlSchema')->name('export');
             Route::get('/{sqlSchema}/export.zip', [SqlSchemaController::class, 'exportZip'])->whereNumber('sqlSchema')->name('export-zip');
-            Route::post('/{sqlSchema}/save-migrations', [SqlSchemaController::class, 'saveMigrations'])->whereNumber('sqlSchema')->name('save-migrations');
             Route::get('/{sqlSchema}/changes', [SqlSchemaController::class, 'changes'])->whereNumber('sqlSchema')->name('changes');
             Route::post('/{sqlSchema}/commit', [SqlSchemaController::class, 'commit'])->whereNumber('sqlSchema')->name('commit');
             Route::get('/{sqlSchema}/drift', [SqlSchemaController::class, 'drift'])->whereNumber('sqlSchema')->name('drift');

@@ -120,9 +120,8 @@ export interface SchemaChanges {
   changes: SchemaChangeTable[]
   summary: { added: number; removed: number; changed: number }
   empty: boolean
-  /** Предлагаемое имя миграции. */
-  name: string
-  migration: string | null
+  /** Миграции по файлу на таблицу, в порядке выполнения. */
+  migrations: { name: string; content: string }[]
   /** Миграции проекта, которые ещё не выполнены. */
   pending: string[]
   /** «posts.slug» — новые NOT NULL колонки без значения по умолчанию. */

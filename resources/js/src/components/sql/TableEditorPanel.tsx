@@ -248,9 +248,9 @@ export function TableEditorPanel({
   const addButton = (
     <button
       onClick={onAddColumn}
-      className="flex w-full items-center justify-center gap-1.5 rounded-lg border border-dashed border-divider py-2 text-[12.5px] text-neutral-500 transition-colors hover:border-accent-700 hover:text-accent"
+      className="flex w-full items-center justify-center gap-1.5 rounded-lg border border-dashed border-lamp-ink bg-tint py-2.5 text-[13px] font-semibold text-lamp-ink transition-colors hover:border-solid hover:bg-lamp-soft"
     >
-      <Plus size={13} /> {t('addColumn')}
+      <Plus size={14} weight="bold" /> {t('addColumn')}
     </button>
   )
 

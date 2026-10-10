@@ -4,7 +4,7 @@ import type { SchemaDrift } from '../../api/types'
 import { t } from '../../lib/i18n'
 import { Button } from '../ui/Button'
 import { Modal } from '../ui/Modal'
-import { ChangeCard } from './CommitModal'
+import { ChangeCard } from './CommitPanel'
 
 interface DriftBannerProps {
   drift: SchemaDrift

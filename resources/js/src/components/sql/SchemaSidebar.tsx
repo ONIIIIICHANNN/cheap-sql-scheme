@@ -1,4 +1,4 @@
-import { DownloadSimple, GearSix, Plus, Table as TableIcon, Trash } from '@phosphor-icons/react'
+import { GitCommit, GearSix, Plus, Table as TableIcon, Trash } from '@phosphor-icons/react'
 import type { SqlTable } from '../../api/types'
 import { cn } from '../../lib/cn'
 import { t, tablesCount } from '../../lib/i18n'
@@ -102,7 +102,7 @@ export function SchemaSidebar({
           onClick={onExport}
           className="flex w-full items-center justify-center gap-2 rounded-lg border border-divider py-2 text-[12.5px] text-neutral-300 transition-colors hover:border-accent-700 hover:text-accent"
         >
-          <DownloadSimple size={14} /> {t('exportToMigration')}
+          <GitCommit size={14} /> {t('migrationsAction')}
         </button>
       </div>
     </aside>

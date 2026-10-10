@@ -104,20 +104,18 @@ export const sqlApi = {
   import: (input: { name: string; content: string }) =>
     api.post<SqlSchema>('/schemas/import', input),
 
-  /**
-   * Записать миграции по таблицам прямо в database/migrations приложения.
-   * Если у таблиц уже есть миграции — 409, список в errors.conflicts;
-   * overwrite перезаписывает их файлы.
-   */
-  saveMigrations: (id: number, overwrite = false) =>
-    api.post<{ path: string; files: string[] }>(`/schemas/${id}/save-migrations`, { overwrite }),
-
   /** Что изменилось с последнего коммита, и миграция с этими изменениями. */
   changes: (id: number) => api.get<SchemaChanges>(`/schemas/${id}/changes`),
 
   /** Зафиксировать изменения; write — записать миграцию в проект. */
-  commit: (id: number, input: { name: string; write: boolean }) =>
-    api.post<{ filename: string; content: string; written: boolean; path: string | null }>(
+  commit: (id: number, input: { write: boolean }) =>
+    api.post<{
+      files: { filename: string; content: string }[]
+      written: boolean
+      path: string | null
+      /** Несколько файлов при скачивании — архивом (base64). */
+      zip: string | null
+    }>(
       `/schemas/${id}/commit`,
       input,
     ),

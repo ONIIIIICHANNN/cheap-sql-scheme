@@ -207,10 +207,20 @@ class SqlSchemaExporter
     /** ZIP с файлами миграций — для скачивания одним архивом. */
     public function toZip(SqlSchema $schema): string
     {
+        return $this->zipFiles($this->toMigrationFiles($schema));
+    }
+
+    /**
+     * Архив с папкой migrations.
+     *
+     * @param  array<int, array{filename: string, content: string}>  $files
+     */
+    public function zipFiles(array $files): string
+    {
         $path = tempnam(sys_get_temp_dir(), 'cheap-sql-scheme');
         $zip = new \ZipArchive;
         $zip->open($path, \ZipArchive::OVERWRITE);
-        foreach ($this->toMigrationFiles($schema) as $file) {
+        foreach ($files as $file) {
             $zip->addFromString('migrations/'.$file['filename'], $file['content']);
         }
         $zip->close();
